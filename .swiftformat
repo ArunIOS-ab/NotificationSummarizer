@@ -1,0 +1,49 @@
+# SwiftFormat configuration.
+#
+# CI runs `swiftformat --lint .`. Without this file the rule set is whatever the
+# installed SwiftFormat defaults to, so a `brew install swiftformat` bump can turn
+# a green build red (or vice versa) with no source change. Pinning the version and
+# the rules here makes lint failures reproducible on developer machines.
+
+# Must match SWIFT_VERSION in the Xcode project. Without it SwiftFormat disables
+# version-dependent formatting and warns.
+--swiftversion 5.9
+
+# --- Rules enforced by CI -------------------------------------------------
+# These are the rules that produced lint failures. They are listed explicitly so
+# the contract is visible in the repo rather than implicit in a default set.
+
+# Imports sorted and grouped (regular, then @testable/@_exported etc.).
+--enable sortImports
+
+# No blank line immediately after an opening brace.
+--enable blankLinesAtStartOfScope
+--enable blankLinesAtEndOfScope
+--enable consecutiveBlankLines
+
+# Single-line bodies get expanded onto multiple lines.
+--enable wrapIfStatementBodies
+--enable wrapLoopBodies
+--enable wrapFunctionBodies
+--enable wrapPropertyBodies
+--enable wrapMultilineStatementBraces
+
+# Trailing commas in multi-line comma-separated lists.
+--enable trailingCommas
+
+# `self` is implied inside instance scope.
+--enable redundantSelf
+
+# Consistent spaces around operators/delimiters.
+--enable spaceAroundOperators
+
+# Digit grouping with `_` in numeric literals (e.g. 1_700_000_000).
+--enable numberFormatting
+
+# `try` hoisted to the start of the expression.
+--enable hoistTry
+
+# `throws` removed where it is not required by the signature.
+--enable redundantThrows
+
+--maxwidth none

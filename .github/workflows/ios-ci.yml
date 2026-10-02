@@ -32,8 +32,16 @@ concurrency:
 jobs:
   ios-ci:
     # Bitrise equivalent: machine / stack selection
-    # macos-14 ships Xcode 15.x; the project requires Xcode 15.4+ (16+ recommended).
-    runs-on: macos-14
+    #
+    # macos-14 (Sonoma) is deprecated and becomes fully unsupported on
+    # 2026-11-02, so it cannot be used here.
+    #
+    # The floor is set by the SwiftPM dependencies, not by this project:
+    # swift-custom-dump and xctest-dynamic-overlay declare `swift-tools-version:6.4`
+    # and swift-snapshot-testing declares 6.0. Xcode 15.x ships Swift 5.10, which
+    # cannot even *parse* a 6.x manifest, so package resolution fails before the
+    # build starts. Those manifests need Swift 6.2+, i.e. Xcode 26.x.
+    runs-on: macos-26
     timeout-minutes: 45
 
     defaults:
@@ -68,9 +76,21 @@ jobs:
       # --------------------------------------------------------------------------
       - name: Select Xcode version
         run: |
-          sudo xcode-select -switch /Applications/Xcode_15.4.app
+          # 26.x is required by the Swift 6.2+ SwiftPM dependencies (see runs-on above).
+          # 26.6 is also the image default, so this is belt-and-braces; the assertion
+          # below turns a future image change into a clear failure instead of a
+          # confusing "unsupported tools version" manifest error.
+          XCODE_APP="/Applications/Xcode_26.6.app"
+          if [ ! -d "$XCODE_APP" ]; then
+            echo "::error::$XCODE_APP not found on this runner image."
+            ls -d /Applications/Xcode*.app
+            exit 1
+          fi
+          sudo xcode-select -switch "$XCODE_APP"
           xcodebuild -version
           swift --version
+          # Fail fast if the toolchain is too old for the dependencies.
+          swift --version | grep -qE 'Swift version 6\.[2-9]|Swift version 7\.'
 
       - name: Cache derived data and SwiftPM dependencies
         uses: actions/cache@v4
@@ -79,10 +99,10 @@ jobs:
             ${{ env.DERIVED_DATA }}
             ~/Library/Caches/org.swift.swiftpm
             ~/Library/Developer/Xcode/DerivedData/ModuleCache.noindex
-          key: ${{ runner.os }}-xcode-15.4-${{ hashFiles('**/*.xcodeproj/project.pbxproj') }}-${{ hashFiles('**/*.swift') }}
+          key: ${{ runner.os }}-xcode-26.6-${{ hashFiles('**/*.xcodeproj/project.pbxproj') }}-${{ hashFiles('**/*.swift') }}
           restore-keys: |
-            ${{ runner.os }}-xcode-15.4-${{ hashFiles('**/*.xcodeproj/project.pbxproj') }}-
-            ${{ runner.os }}-xcode-15.4-
+            ${{ runner.os }}-xcode-26.6-${{ hashFiles('**/*.xcodeproj/project.pbxproj') }}-
+            ${{ runner.os }}-xcode-26.6-
 
       # --------------------------------------------------------------------------
       # Step 3 - Bitrise equivalent: custom script running swiftformat --lint
@@ -93,19 +113,17 @@ jobs:
       #   The fix step is gated on `failure()`, which is what allows it to run
       #   even though the lint step already failed the job.
       # --------------------------------------------------------------------------
-      - name: Cache SwiftFormat binary
-        uses: actions/cache@v4
-        with:
-          path: ~/Library/Caches/SwiftFormat
-          key: ${{ runner.os }}-swiftformat-0.56.2
-
-      - name: Install SwiftFormat
-        run: brew install swiftformat
+      - name: Report SwiftFormat version
+        # The runner image ships SwiftFormat; `brew install swiftformat` would
+        # silently upgrade to whatever is newest, so the lint result would depend
+        # on the image date instead of the repo. Rule changes between versions are
+        # exactly what turns CI red with no source change.
+        run: swiftformat --version
 
       - name: Lint formatting (SwiftFormat --lint)
         id: swiftformat
-        # .swiftformat is currently absent from this repo; add one to pin the
-        # rules so `--lint` failures are reproducible on developer machines.
+        # Rules are pinned in .swiftformat (committed), so this is reproducible
+        # on developer machines too.
         run: swiftformat --lint .
 
       - name: Auto-fix formatting and commit back (PRs only)
@@ -141,23 +159,39 @@ jobs:
         id: sim
         run: |
           set -euo pipefail
-          # Pick the newest available iPhone on the newest iOS 17+ runtime so the
+          # Pick the newest available iPhone on the newest iOS runtime so the
           # workflow survives runner image changes better than a hardcoded name.
+          #
+          # Runtimes are sorted by parsed (major, minor) rather than as strings,
+          # because lexicographic order ranks "iOS-9-5" above "iOS-26-5".
+          # "SE" is excluded to avoid the smaller, differently-laid-out screen.
           UDID=$(xcrun simctl list devices available -j \
             | python3 -c "
-          import json,sys
-          data=json.load(sys.stdin)['devices']
-          rts=[r for r in data if 'iOS-1' in r or 'iOS-2' in r]
-          best=None
-          for rt in sorted(rts, reverse=True):
-              phones=[d for d in data[rt] if d['isAvailable'] and 'iPhone' in d['name']
-                      and 'SE' not in d['name']]
+          import json, re, sys
+          data = json.load(sys.stdin)['devices']
+
+          def version(runtime_id):
+              # Anchor to '.SimRuntime.iOS-' so tvOS/watchOS/visionOS runtimes
+              # (whose ids contain 'iOS-' as a substring) are excluded, and
+              # return a tuple for every candidate so the sort never sees None.
+              m = re.search(r'\.SimRuntime\.iOS-(\d+)(?:-(\d+))?', runtime_id)
+              return (int(m.group(1)), int(m.group(2) or 0)) if m else None
+
+          runtimes = [(version(r), r) for r in data if version(r) is not None]
+          best = ''
+          for _, rt in sorted(runtimes, key=lambda pair: pair[0], reverse=True):
+              phones = [
+                  d for d in data[rt]
+                  if d['isAvailable'] and 'iPhone' in d['name'] and 'SE' not in d['name']
+              ]
               if phones:
-                  best=phones[-1]['udid']; break
-          print(best or '')
+                  best = sorted(phones, key=lambda d: d['name'])[-1]['udid']
+                  break
+          print(best)
           ")
           if [ -z "$UDID" ]; then
             echo "::error::No available iPhone simulator found"
+            xcrun simctl list devices available
             exit 1
           fi
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"

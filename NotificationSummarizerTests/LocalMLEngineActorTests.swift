@@ -1,10 +1,9 @@
-import XCTest
 @testable import NotificationSummarizer
+import XCTest
 
 /// Covers the actor's public surface: the rule-based behaviour that must hold when the
 /// Core ML model and tokenizer are absent from the test bundle.
 final class LocalMLEngineActorTests: XCTestCase {
-
     func testClassifyReturnsPersonalForBlankText() async {
         let engine = LocalMLEngineActor()
         let category = await engine.classify(text: "   \n  ")
@@ -12,7 +11,7 @@ final class LocalMLEngineActorTests: XCTestCase {
         XCTAssertEqual(category, .personal)
     }
 
-    func testClassifyCompletesWithinTheTimeoutBudget() async throws {
+    func testClassifyCompletesWithinTheTimeoutBudget() async {
         let engine = LocalMLEngineActor()
         let start = Date()
         _ = await engine.classify(text: "Standup moved to 10:30")

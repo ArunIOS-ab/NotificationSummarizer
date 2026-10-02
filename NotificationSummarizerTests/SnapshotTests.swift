@@ -1,8 +1,8 @@
+@testable import NotificationSummarizer
 import SnapshotTesting
 import SwiftData
 import SwiftUI
 import XCTest
-@testable import NotificationSummarizer
 
 /// Fixed "now" for every snapshot in this file.
 ///
@@ -13,9 +13,11 @@ private let referenceNow = Date(timeIntervalSince1970: 1_700_000_000)
 /// Records reference images on first run instead of failing, so a fresh clone can
 /// generate its baseline in one go. CI flips this to `.never` via
 /// `SNAPSHOT_TESTING_RECORD` so an accidental UI change cannot silently rewrite them.
-private let recordMode: SnapshotTestingConfiguration.Record = {
-    if ProcessInfo.processInfo.environment["SNAPSHOT_TESTING_RECORD"] == "never" { .never } else { .missing }
-}()
+private let recordMode: SnapshotTestingConfiguration.Record = if ProcessInfo.processInfo.environment["SNAPSHOT_TESTING_RECORD"] == "never" {
+    .never
+} else {
+    .missing
+}
 
 // MARK: - Fixtures
 
@@ -27,7 +29,9 @@ private func makeContainer(_ items: [SummarizedNotification]) throws -> ModelCon
         for: SummarizedNotification.self,
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
-    for item in items { container.mainContext.insert(item) }
+    for item in items {
+        container.mainContext.insert(item)
+    }
     return container
 }
 
@@ -61,7 +65,7 @@ private var workFixture: SummarizedNotification {
         text: "Team stand-up moved to 10:30 AM. Please review the sprint board before joining.",
         summary: "Review the sprint board before the 10:30 AM stand-up.",
         category: .work,
-        age: 3_600
+        age: 3600
     )
 }
 
@@ -70,7 +74,7 @@ private var securityFixture: SummarizedNotification {
         text: "New sign-in detected on your account. If this wasn't you, secure your account now.",
         summary: "Review the new sign-in and secure your account if it wasn't you.",
         category: .security,
-        age: 7_200,
+        age: 7200,
         isRead: true
     )
 }
@@ -82,7 +86,6 @@ private var securityFixture: SummarizedNotification {
 /// `isRunning` / `result` are plain inputs rather than `@State`, so each state can be
 /// rendered deterministically without driving a real Core ML inference.
 final class LocalAITestCardSnapshotTests: XCTestCase {
-
     private func assertCard(
         text: String,
         isRunning: Bool,
@@ -164,7 +167,6 @@ final class LocalAITestCardSnapshotTests: XCTestCase {
 // MARK: - NotificationCardView states
 
 final class NotificationCardViewSnapshotTests: XCTestCase {
-
     private func assertCard(_ item: SummarizedNotification, named name: String, colorScheme: ColorScheme = .light) {
         let view = NotificationCardView(notification: item)
             .frame(width: 358)
@@ -226,7 +228,6 @@ final class NotificationCardViewSnapshotTests: XCTestCase {
 // MARK: - Category chips
 
 final class CategoryChipRowSnapshotTests: XCTestCase {
-
     /// Minimal host that owns the `@State` the chip row binds to, so the
     /// initial selection is genuinely applied (rather than always defaulting to nil).
     private struct ChipHarness: View {
@@ -278,7 +279,6 @@ final class CategoryChipRowSnapshotTests: XCTestCase {
 /// or the filter interaction surfaces here rather than only in unit tests.
 @MainActor
 final class NotificationDashboardViewSnapshotTests: XCTestCase {
-
     @MainActor
     private func assertDashboard(
         items: [SummarizedNotification],
@@ -354,7 +354,7 @@ final class NotificationDashboardViewSnapshotTests: XCTestCase {
                     text: String(repeating: "Susicious sign-in detected on your account. ", count: 3),
                     summary: "Secure your account if this wasn't you.",
                     category: .security,
-                    age: 5_400
+                    age: 5400
                 ),
             ],
             named: "populated-long-content"

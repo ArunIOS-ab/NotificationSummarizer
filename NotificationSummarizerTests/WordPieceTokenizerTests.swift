@@ -1,9 +1,8 @@
-import XCTest
 @testable import NotificationSummarizer
+import XCTest
 
 /// Covers the dependency-free WordPiece tokenizer that feeds the Core ML classifier.
 final class WordPieceTokenizerTests: XCTestCase {
-
     private var directory: URL!
 
     override func setUpWithError() throws {
@@ -13,7 +12,9 @@ final class WordPieceTokenizerTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        if let directory { try? FileManager.default.removeItem(at: directory) }
+        if let directory {
+            try? FileManager.default.removeItem(at: directory)
+        }
         directory = nil
     }
 

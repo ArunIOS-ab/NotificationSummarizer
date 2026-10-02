@@ -49,11 +49,10 @@ struct NotificationDashboardView: View {
             defer { isRunning = false }
             let engine = LocalMLEngineActor.shared
             let category = await engine.classify(text: testText)
-            let summary = (try? await engine.summarize(text: testText)) ?? "Unable to summarize."
+            let summary = await (try? engine.summarize(text: testText)) ?? "Unable to summarize."
             testResult = "\(category.rawValue) • \(summary)"
         }
     }
-
 
     private func seedDemoDataIfNeeded() {
         guard notifications.isEmpty else { return }
@@ -76,7 +75,7 @@ struct NotificationDashboardView: View {
                 "Review the new sign-in and secure your account if it wasn't you.",
                 .security,
                 -7200
-            )
+            ),
         ]
 
         for sample in samples {

@@ -1,9 +1,8 @@
-import XCTest
 @testable import NotificationSummarizer
+import XCTest
 
 /// Covers the deterministic 20-word summarizer used as the offline fallback.
 final class RuleSummarizerTests: XCTestCase {
-
     func testEmptyTextReturnsPlaceholder() {
         XCTAssertEqual(RuleSummarizer.summarize(""), "No actionable notification details available.")
         XCTAssertEqual(RuleSummarizer.summarize("  \n  "), "No actionable notification details available.")
@@ -20,7 +19,7 @@ final class RuleSummarizerTests: XCTestCase {
     }
 
     func testTruncatesToTwentyWordsWithEllipsis() {
-        let text = (1...30).map { "word\($0)" }.joined(separator: " ")
+        let text = (1 ... 30).map { "word\($0)" }.joined(separator: " ")
         let summary = RuleSummarizer.summarize(text)
 
         XCTAssertTrue(summary.hasSuffix("\u{2026}"))
@@ -30,7 +29,7 @@ final class RuleSummarizerTests: XCTestCase {
     }
 
     func testExactlyTwentyWordsIsNotTruncated() {
-        let text = (1...20).map { "word\($0)" }.joined(separator: " ")
+        let text = (1 ... 20).map { "word\($0)" }.joined(separator: " ")
         let summary = RuleSummarizer.summarize(text)
 
         XCTAssertFalse(summary.hasSuffix("\u{2026}"))

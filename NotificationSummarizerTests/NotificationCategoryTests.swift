@@ -1,9 +1,8 @@
-import XCTest
 @testable import NotificationSummarizer
+import XCTest
 
 /// Covers the categories surfaced by the dashboard and the SwiftData round-trip.
 final class NotificationCategoryTests: XCTestCase {
-
     func testSixCategoriesAreExposed() {
         XCTAssertEqual(NotificationCategory.allCases.count, 6)
         XCTAssertEqual(

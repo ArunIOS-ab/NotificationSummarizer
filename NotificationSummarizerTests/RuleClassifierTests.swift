@@ -1,9 +1,8 @@
-import XCTest
 @testable import NotificationSummarizer
+import XCTest
 
 /// Covers the deterministic keyword classifier used whenever the Core ML model is unavailable.
 final class RuleClassifierTests: XCTestCase {
-
     func testClassifiesSecurityKeywords() {
         XCTAssertEqual(RuleClassifier.category(for: "Your OTP is 448120"), .security)
         XCTAssertEqual(RuleClassifier.category(for: "New sign-in from a suspicious device"), .security)

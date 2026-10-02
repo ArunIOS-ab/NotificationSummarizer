@@ -21,7 +21,7 @@ final class SummarizedNotification {
         self.id = id
         self.originalText = originalText
         self.summary = summary
-        self.categoryRaw = category.rawValue
+        categoryRaw = category.rawValue
         self.timestamp = timestamp
         self.isRead = isRead
     }
