@@ -16,7 +16,22 @@
 		A10000000000000000000007 /* NotificationDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000007 /* NotificationDashboardView.swift */; };
 		A10000000000000000000008 /* NotificationClassifier.mlpackage in Resources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000A /* NotificationClassifier.mlpackage */; };
 		A10000000000000000000009 /* Tokenizer in Resources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000B /* Tokenizer */; };
+		A10000000000000000000010 /* RuleClassifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000010 /* RuleClassifierTests.swift */; };
+		A10000000000000000000011 /* RuleSummarizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000011 /* RuleSummarizerTests.swift */; };
+		A10000000000000000000012 /* WordPieceTokenizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000012 /* WordPieceTokenizerTests.swift */; };
+		A10000000000000000000013 /* NotificationCategoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* NotificationCategoryTests.swift */; };
+		A10000000000000000000014 /* LocalMLEngineActorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000014 /* LocalMLEngineActorTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		E10000000000000000000004 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E10000000000000000000002 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E10000000000000000000001;
+			remoteInfo = NotificationSummarizer;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		B10000000000000000000001 /* NotificationSummarizerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSummarizerApp.swift; sourceTree = "<group>"; };
@@ -30,10 +45,23 @@
 		B10000000000000000000009 /* NotificationSummarizer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NotificationSummarizer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1000000000000000000000A /* NotificationClassifier.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper.mlpackage; path = NotificationClassifier.mlpackage; sourceTree = "<group>"; };
 		B1000000000000000000000B /* Tokenizer */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Tokenizer; sourceTree = "<group>"; };
+		B10000000000000000000010 /* RuleClassifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleClassifierTests.swift; sourceTree = "<group>"; };
+		B10000000000000000000011 /* RuleSummarizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuleSummarizerTests.swift; sourceTree = "<group>"; };
+		B10000000000000000000012 /* WordPieceTokenizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordPieceTokenizerTests.swift; sourceTree = "<group>"; };
+		B10000000000000000000013 /* NotificationCategoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCategoryTests.swift; sourceTree = "<group>"; };
+		B10000000000000000000014 /* LocalMLEngineActorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMLEngineActorTests.swift; sourceTree = "<group>"; };
+		B10000000000000000000015 /* NotificationSummarizerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotificationSummarizerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		C10000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C10000000000000000000005 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -47,6 +75,7 @@
 			isa = PBXGroup;
 			children = (
 				D10000000000000000000002 /* NotificationSummarizer */,
+				D10000000000000000000008 /* NotificationSummarizerTests */,
 				B1000000000000000000000A /* NotificationClassifier.mlpackage */,
 				D10000000000000000000003 /* Products */,
 			);
@@ -70,6 +99,7 @@
 			isa = PBXGroup;
 			children = (
 				B10000000000000000000009 /* NotificationSummarizer.app */,
+				B10000000000000000000015 /* NotificationSummarizerTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -116,6 +146,18 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		D10000000000000000000008 /* NotificationSummarizerTests */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000010 /* RuleClassifierTests.swift */,
+				B10000000000000000000011 /* RuleSummarizerTests.swift */,
+				B10000000000000000000012 /* WordPieceTokenizerTests.swift */,
+				B10000000000000000000013 /* NotificationCategoryTests.swift */,
+				B10000000000000000000014 /* LocalMLEngineActorTests.swift */,
+			);
+			path = NotificationSummarizerTests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -136,6 +178,24 @@
 			productReference = B10000000000000000000009 /* NotificationSummarizer.app */;
 			productType = "com.apple.product-type.application";
 		};
+		E10000000000000000000003 /* NotificationSummarizerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F10000000000000000000009 /* Build configuration list for PBXNativeTarget "NotificationSummarizerTests" */;
+			buildPhases = (
+				C10000000000000000000004 /* Sources */,
+				C10000000000000000000005 /* Frameworks */,
+				C10000000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E10000000000000000000005 /* PBXTargetDependency */,
+			);
+			name = NotificationSummarizerTests;
+			productName = NotificationSummarizerTests;
+			productReference = B10000000000000000000015 /* NotificationSummarizerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -146,6 +206,10 @@
 				TargetAttributes = {
 					E10000000000000000000001 = {
 						CreatedOnToolsVersion = 16.0;
+					};
+					E10000000000000000000003 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = E10000000000000000000001;
 					};
 				};
 			};
@@ -163,6 +227,7 @@
 			projectRoot = "";
 			targets = (
 				E10000000000000000000001 /* NotificationSummarizer */,
+				E10000000000000000000003 /* NotificationSummarizerTests */,
 			);
 		};
 /* End PBXProject section */
@@ -177,9 +242,29 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C10000000000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		C10000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000010 /* RuleClassifierTests.swift in Sources */,
+				A10000000000000000000011 /* RuleSummarizerTests.swift in Sources */,
+				A10000000000000000000012 /* WordPieceTokenizerTests.swift in Sources */,
+				A10000000000000000000013 /* NotificationCategoryTests.swift in Sources */,
+				A10000000000000000000014 /* LocalMLEngineActorTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+
 		C10000000000000000000002 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -196,6 +281,14 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		E10000000000000000000005 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E10000000000000000000001 /* NotificationSummarizer */;
+			targetProxy = E10000000000000000000004 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
 		F10000000000000000000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -204,6 +297,7 @@
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
+				ENABLE_TESTABILITY = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NotificationSummarizer/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -255,6 +349,48 @@
 			};
 			name = Release;
 		};
+		F10000000000000000000007 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.NotificationSummarizerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NotificationSummarizer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/NotificationSummarizer";
+			};
+			name = Debug;
+		};
+		F10000000000000000000008 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.NotificationSummarizerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NotificationSummarizer.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/NotificationSummarizer";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -272,6 +408,15 @@
 			buildConfigurations = (
 				F10000000000000000000001 /* Debug */,
 				F10000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F10000000000000000000009 /* Build configuration list for PBXNativeTarget "NotificationSummarizerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F10000000000000000000007 /* Debug */,
+				F10000000000000000000008 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -110,7 +110,8 @@ enum LocalMLError: Error {
     case memoryPressure
 }
 
-private enum RuleClassifier {
+/// Internal (not private) so unit tests can cover the fallback path directly.
+enum RuleClassifier {
     static func category(for text: String) -> NotificationCategory {
         let s = text.lowercased()
         if contains(s, ["otp", "verification", "login", "signed in", "password", "security", "suspicious", "fraud"]) { return .security }
@@ -124,7 +125,8 @@ private enum RuleClassifier {
     private static func contains(_ text: String, _ needles: [String]) -> Bool { needles.contains { text.contains($0) } }
 }
 
-private enum RuleSummarizer {
+/// Internal (not private) so unit tests can cover the fallback path directly.
+enum RuleSummarizer {
     static func summarize(_ text: String) -> String {
         let cleaned = text.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression).trimmingCharacters(in: .whitespacesAndNewlines)
         if cleaned.isEmpty { return "No actionable notification details available." }
