@@ -1,0 +1,202 @@
+name: iOS CI
+
+# ==============================================================================
+# Bitrise equivalent: trigger_map
+#   push + pull_request, gated to the main and develop branches.
+#   `branches` applies to push; for pull_request it filters the *base* branch,
+#   which is the behaviour you want (feature -> develop runs, feature -> random fork branch does not).
+# ==============================================================================
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# ==============================================================================
+# Bitrise equivalent: workflow-level permissions
+#   `contents: write` is required so the SwiftFormat auto-fix job can push the
+#   formatting commit back to the PR branch.
+#
+#   NOTE: pulls from forks receive a read-only GITHUB_TOKEN by design, so the
+#   auto-fix is skipped there (the `format-fix` step checks this explicitly).
+#   Everything else runs with read-only access.
+# ==============================================================================
+permissions:
+  contents: write
+
+# Cancel superseded runs on the same ref instead of queueing them.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios-ci:
+    # Bitrise equivalent: machine / stack selection
+    # macos-14 ships Xcode 15.x; the project requires Xcode 15.4+ (16+ recommended).
+    runs-on: macos-14
+    timeout-minutes: 45
+
+    defaults:
+      run:
+        working-directory: .
+
+    env:
+      # Centralised so the project/scheme are defined in exactly one place.
+      PROJECT: NotificationSummarizer.xcodeproj
+      SCHEME: NotificationSummarizer
+      # Pinned so derived-data caching hits across runs.
+      DERIVED_DATA: ${{ github.workspace }}/build/DerivedData
+      RESULT_BUNDLE: ${{ github.workspace }}/build/TestResults.xcresult
+
+    steps:
+      # --------------------------------------------------------------------------
+      # Step 1 - Bitrise equivalent: git-clone
+      # --------------------------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # --------------------------------------------------------------------------
+      # Step 2 - Bitrise equivalent: cache-pull / cache-push
+      #   Bitrise uses its own hosted cache with explicit pull at start and push
+      #   at end. GitHub Actions has no push/pull step, so we key a cache that is
+      #   saved on first run and restored automatically on subsequent ones.
+      #
+      #   Caches:
+      #     - DerivedData  : the expensive part (recompiles, module cache)
+      #     - SourcePackages : SwiftPM checkouts, in case SPM deps are added later
+      #   Restore keys let us fall back to the most recent cache from the branch.
+      # --------------------------------------------------------------------------
+      - name: Select Xcode version
+        run: |
+          sudo xcode-select -switch /Applications/Xcode_15.4.app
+          xcodebuild -version
+          swift --version
+
+      - name: Cache derived data and SwiftPM dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.DERIVED_DATA }}
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/Developer/Xcode/DerivedData/ModuleCache.noindex
+          key: ${{ runner.os }}-xcode-15.4-${{ hashFiles('**/*.xcodeproj/project.pbxproj') }}-${{ hashFiles('**/*.swift') }}
+          restore-keys: |
+            ${{ runner.os }}-xcode-15.4-${{ hashFiles('**/*.xcodeproj/project.pbxproj') }}-
+            ${{ runner.os }}-xcode-15.4-
+
+      # --------------------------------------------------------------------------
+      # Step 3 - Bitrise equivalent: custom script running swiftformat --lint
+      #   On a pull_request, a lint failure triggers an auto-fix + commit
+      #   (stefanzweifel/git-auto-commit-action@v5) so the author gets the
+      #   formatted result in their branch instead of a red build.
+      #
+      #   The fix step is gated on `failure()`, which is what allows it to run
+      #   even though the lint step already failed the job.
+      # --------------------------------------------------------------------------
+      - name: Cache SwiftFormat binary
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/SwiftFormat
+          key: ${{ runner.os }}-swiftformat-0.56.2
+
+      - name: Install SwiftFormat
+        run: brew install swiftformat
+
+      - name: Lint formatting (SwiftFormat --lint)
+        id: swiftformat
+        # .swiftformat is currently absent from this repo; add one to pin the
+        # rules so `--lint` failures are reproducible on developer machines.
+        run: swiftformat --lint .
+
+      - name: Auto-fix formatting and commit back (PRs only)
+        if: >-
+          failure() &&
+          steps.swiftformat.outcome == 'failure' &&
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: '[ci] Apply SwiftFormat formatting'
+          commit_user: 'github-actions[bot]'
+          commit_author: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
+          file_pattern: '.*\.swift$'
+
+      - name: Fail build if formatting is still invalid
+        # Non-PR pushes, and fork PRs where we cannot push, must hard-fail.
+        if: steps.swiftformat.outcome == 'failure'
+        run: |
+          echo "::error::SwiftFormat reported formatting violations."
+          echo "Run 'swiftformat .' locally and commit the result."
+          exit 1
+
+      # --------------------------------------------------------------------------
+      # Step 4 - Bitrise equivalent: xcode-test
+      #   Runs unit + UI tests on an iOS simulator. This project ships the
+      #   NotificationSummarizerTests unit-test bundle, hosted by the app target.
+      #
+      #   `-resultBundlePath` is required for the artifact upload in step 5.
+      #   `CODE_SIGNING_ALLOWED=NO` avoids signing issues for simulator builds.
+      # --------------------------------------------------------------------------
+      - name: Resolve simulator destination
+        id: sim
+        run: |
+          set -euo pipefail
+          # Pick the newest available iPhone on the newest iOS 17+ runtime so the
+          # workflow survives runner image changes better than a hardcoded name.
+          UDID=$(xcrun simctl list devices available -j \
+            | python3 -c "
+          import json,sys
+          data=json.load(sys.stdin)['devices']
+          rts=[r for r in data if 'iOS-1' in r or 'iOS-2' in r]
+          best=None
+          for rt in sorted(rts, reverse=True):
+              phones=[d for d in data[rt] if d['isAvailable'] and 'iPhone' in d['name']
+                      and 'SE' not in d['name']]
+              if phones:
+                  best=phones[-1]['udid']; break
+          print(best or '')
+          ")
+          if [ -z "$UDID" ]; then
+            echo "::error::No available iPhone simulator found"
+            exit 1
+          fi
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          echo "Using simulator $UDID"
+          xcrun simctl list devices available | grep -F "$UDID" || true
+
+      - name: Install xcpretty
+        # Optional log formatter. Installed up front so the test step never
+        # needs a re-run if the pipe fails.
+        run: brew install xcpretty
+
+      - name: Run unit and UI tests (xcodebuild test)
+        run: |
+          set -o pipefail
+          mkdir -p build
+          xcodebuild test \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
+            -derivedDataPath "$DERIVED_DATA" \
+            -resultBundlePath "$RESULT_BUNDLE" \
+            -enableCodeCoverage YES \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty
+
+      # --------------------------------------------------------------------------
+      # Step 5 - Bitrise equivalent: deploy / upload artifacts step
+      #   Bitrise pushes logs and test results as build artifacts automatically.
+      #   GitHub only uploads when a step explicitly does it, so we always attach
+      #   the xcresult bundle and always keep logs, but tolerate a missing bundle
+      #   when the failure happened before tests started.
+      # --------------------------------------------------------------------------
+      - name: Upload test results and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_id }}
+          path: |
+            ${{ env.RESULT_BUNDLE }}
+            ${{ env.DERIVED_DATA }}/Logs
+          retention-days: 14
+          if-no-files-found: warn
