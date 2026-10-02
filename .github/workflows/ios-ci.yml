@@ -211,10 +211,19 @@ jobs:
             exit 1
           fi
 
-      - name: Install xcpretty
-        # Optional log formatter. Installed up front so the test step never
-        # needs a re-run if the pipe fails.
-        run: brew install xcpretty
+      - name: Verify log formatter is available
+        # xcpretty is unmaintained and has been removed from Homebrew, so
+        # `brew install xcpretty` now fails and kills the job. xcbeautify is the
+        # maintained successor and is preinstalled on the runner image, so there
+        # is nothing to install. This step only asserts it exists so a future
+        # image change fails here with a clear message instead of mid-pipeline.
+        run: |
+          if ! command -v xcbeautify >/dev/null 2>&1; then
+            echo "::error::xcbeautify not found on this runner image."
+            echo "It ships preinstalled with macos-26; drop the formatter pipe if removed."
+            exit 1
+          fi
+          xcbeautify --version
 
       - name: Run unit and UI tests (xcodebuild test)
         run: |
@@ -228,7 +237,7 @@ jobs:
             -resultBundlePath "$RESULT_BUNDLE" \
             -enableCodeCoverage YES \
             CODE_SIGNING_ALLOWED=NO \
-            | xcpretty
+            | xcbeautify
         # CI compares against committed baselines; never rewrite them here.
         env:
           SNAPSHOT_TESTING_RECORD: never
