@@ -25,8 +25,11 @@ Expected artifact:
 
 The .mlpackage contains:
     - classLabel: predicted category
-    - classLabelProbs: probability dictionary
-    - logits: raw scores
+    - classLabel_probs: probability dictionary
+
+Note: passing a ClassifierConfig makes coremltools consume the network's
+final "logits" output as the softmax source for classLabel_probs, so a
+separate raw "logits" output is not present in the saved package.
 
 The summarizer in this file is intentionally deterministic. It is designed
 for notification/action-item extraction rather than open-ended generation.
@@ -400,7 +403,7 @@ def train_classifier() -> Tuple[torch.nn.Module, AutoTokenizer]:
 # -----------------------------
 
 class CoreMLWrapper(torch.nn.Module):
-    """Returns only logits and accepts int32 Core ML-friendly token tensors."""
+    """Returns softmax probabilities and accepts int32 Core ML-friendly token tensors."""
 
     def __init__(self, hf_model):
         super().__init__()
@@ -410,10 +413,18 @@ class CoreMLWrapper(torch.nn.Module):
         input_ids = input_ids.to(dtype=torch.long)
         attention_mask = attention_mask.to(dtype=torch.long)
 
-        return self.model(
+        logits = self.model(
             input_ids=input_ids,
             attention_mask=attention_mask,
         ).logits
+
+        # coremltools does NOT insert a softmax for a ClassifierConfig. It
+        # takes the final non-const tensor in the graph and renames it to
+        # "<predicted_feature_name>_probs". Without this softmax the
+        # classLabel_probs dictionary would hold raw logits, which can be
+        # negative and do not sum to 1. Softmaxing here keeps the argmax
+        # (and therefore classLabel) unchanged.
+        return torch.softmax(logits, dim=-1)
 
 
 def convert_to_coreml(model, tokenizer) -> ct.models.MLModel:
@@ -461,10 +472,12 @@ def convert_to_coreml(model, tokenizer) -> ct.models.MLModel:
         ),
     ]
 
+    # Leaving predicted_probabilities_output unset makes coremltools attach the
+    # final non-const output (logits) and apply a softmax, which produces the
+    # classLabelProbs output alongside classLabel and logits.
     classifier_config = ct.ClassifierConfig(
         LABELS,
         predicted_feature_name="classLabel",
-        probability_feature_name="classLabelProbs",
     )
 
     print("Converting PyTorch -> Core ML ML Program...")
@@ -475,7 +488,9 @@ def convert_to_coreml(model, tokenizer) -> ct.models.MLModel:
         inputs=inputs,
         outputs=[
             ct.TensorType(
-                name="logits",
+                # The traced graph now emits softmax probabilities, and the
+                # ClassifierConfig renames this output to "classLabel_probs".
+                name="classLabel_probs",
                 dtype=np.float32,
             )
         ],
@@ -487,43 +502,44 @@ def convert_to_coreml(model, tokenizer) -> ct.models.MLModel:
     )
 
     # Feature descriptions.
-    spec = mlmodel.get_spec()
-
-    spec.description.metadata.author = (
-        "On-Device ML & Apple Silicon Architecture Pipeline"
-    )
-    spec.description.metadata.versionString = "1.0.0"
-    spec.description.metadata.shortDescription = (
+    #
+    # An "mlprogram" model keeps its weights in a separate weights file, so it
+    # cannot be rebuilt from a spec alone (MLModel(spec) raises unless a
+    # weights_dir is also supplied). coremltools exposes settable properties for
+    # all of these fields, so edit the live model instead of round-tripping the
+    # spec. These persist through save().
+    mlmodel.author = "On-Device ML & Apple Silicon Architecture Pipeline"
+    mlmodel.version = "1.0.0"
+    mlmodel.short_description = (
         "On-device mobile notification category classifier."
     )
 
-    for feature in spec.description.input:
-        if feature.name == "input_ids":
-            feature.shortDescription = (
-                "Token IDs produced by the bundled DistilBERT tokenizer."
-            )
-        elif feature.name == "attention_mask":
-            feature.shortDescription = (
-                "Attention mask with 1 for real tokens and 0 for padding."
-            )
+    # input_description / output_description are mutable mappings keyed by
+    # feature name; assigning to a key sets that feature's shortDescription.
+    input_descriptions = {
+        "input_ids": "Token IDs produced by the bundled DistilBERT tokenizer.",
+        "attention_mask": (
+            "Attention mask with 1 for real tokens and 0 for padding."
+        ),
+    }
 
-    for feature in spec.description.output:
-        if feature.name == "logits":
-            feature.shortDescription = (
-                "Raw six-class notification category logits."
-            )
-        elif feature.name == "classLabel":
-            feature.shortDescription = "Predicted notification category."
-        elif feature.name == "classLabelProbs":
-            feature.shortDescription = (
-                "Probability distribution over notification categories."
-            )
+    # "logits" is absent because ClassifierConfig consumes it as the source
+    # for the softmax probability output. coremltools emits that dictionary as
+    # "classLabel_probs".
+    output_descriptions = {
+        "classLabel": "Predicted notification category.",
+        "classLabel_probs": (
+            "Probability distribution over notification categories."
+        ),
+    }
 
-    # Re-wrap the modified spec.
-    mlmodel = ct.models.MLModel(
-        spec,
-        compute_units=ct.ComputeUnit.ALL,
-    )
+    for name, description in input_descriptions.items():
+        if name in mlmodel.input_description:
+            mlmodel.input_description[name] = description
+
+    for name, description in output_descriptions.items():
+        if name in mlmodel.output_description:
+            mlmodel.output_description[name] = description
 
     return mlmodel
 
@@ -558,14 +574,12 @@ def quantize_coreml(mlmodel: ct.models.MLModel) -> ct.models.MLModel:
         global_config=op_config
     )
 
+    # linear_quantize_weights already returns a fully constructed, loaded
+    # MLModel, so it must not be rebuilt from its spec (that fails for
+    # "mlprogram" models, whose weights live outside the spec).
     compressed = cto.coreml.linear_quantize_weights(
         mlmodel,
         config=optimization_config,
-    )
-
-    compressed = ct.models.MLModel(
-        compressed.get_spec(),
-        compute_units=ct.ComputeUnit.ALL,
     )
 
     return compressed
@@ -669,7 +683,10 @@ def coreml_predict(
 
     category = result["classLabel"]
 
-    probs = result.get("classLabelProbs")
+    # coremltools names the classifier probability dictionary output
+    # "classLabel_probs" (underscore), and it replaces the raw "logits"
+    # output, which the classifier config consumes as its softmax source.
+    probs = result.get("classLabel_probs")
     confidence = float(probs[category]) if probs is not None else float("nan")
 
     summary = summarize_notification(notification, category)
