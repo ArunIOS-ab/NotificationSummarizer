@@ -1,0 +1,29 @@
+# Xcode / build output
+build/
+DerivedData/
+*.xcresult
+
+# Xcode user state (machine-specific)
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+
+# Swift Package Manager
+.swiftpm/
+.build/
+Packages/
+
+# CocoaPods / Carthage (not currently used, harmless to keep ahead of adoption)
+Pods/
+Carthage/Build/
+
+# Fastlane (not currently used)
+fastlane/report.xml
+fastlane/screenshots/**/*.png
+
+# Snapshot test reference images are intentionally NOT ignored.
+# They are the assertions: CI compares against the committed baseline, so they
+# must be reviewed and committed alongside any intentional UI change.
+
+# macOS
+.DS_Store

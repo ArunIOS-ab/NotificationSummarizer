@@ -164,6 +164,19 @@ jobs:
           echo "Using simulator $UDID"
           xcrun simctl list devices available | grep -F "$UDID" || true
 
+      - name: Verify snapshot reference images are committed
+        # Snapshot baselines live in NotificationSummarizerTests/__Snapshots__ and
+        # are the actual assertions. If they are missing, `record: .missing`
+        # would silently regenerate them and the run would pass regardless of
+        # whether the UI changed. Fail loudly instead.
+        run: |
+          if [ -z "$(find NotificationSummarizerTests/__Snapshots__ -name '*.png' 2>/dev/null | head -1)" ]; then
+            echo "::error::No snapshot reference images found."
+            echo "Run the snapshot tests locally (record mode) and commit"
+            echo "NotificationSummarizerTests/__Snapshots__."
+            exit 1
+          fi
+
       - name: Install xcpretty
         # Optional log formatter. Installed up front so the test step never
         # needs a re-run if the pipe fails.
@@ -182,6 +195,9 @@ jobs:
             -enableCodeCoverage YES \
             CODE_SIGNING_ALLOWED=NO \
             | xcpretty
+        # CI compares against committed baselines; never rewrite them here.
+        env:
+          SNAPSHOT_TESTING_RECORD: never
 
       # --------------------------------------------------------------------------
       # Step 5 - Bitrise equivalent: deploy / upload artifacts step
