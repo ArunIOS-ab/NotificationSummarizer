@@ -10,6 +10,14 @@ import XCTest
 /// so pinning it keeps reference images stable no matter when the suite runs.
 private let referenceNow = Date(timeIntervalSince1970: 1_700_000_000)
 
+/// Fixed locale for every snapshot in this file.
+///
+/// `RelativeDateTimeFormatter` renders the same instant differently per locale
+/// (`en_US` = "3m ago", `en_GB`/`en_IN` = "3 min ago"), so the device locale has to
+/// be pinned too. Without this, baselines recorded on one machine fail on any
+/// runner configured for a different region.
+private let referenceLocale = Locale(identifier: "en_US")
+
 /// Records reference images on first run instead of failing, so a fresh clone can
 /// generate its baseline in one go. CI flips this to `.never` via
 /// `SNAPSHOT_TESTING_RECORD` so an accidental UI change cannot silently rewrite them.
@@ -96,6 +104,7 @@ final class LocalAITestCardSnapshotTests: XCTestCase {
         let view = LocalAITestCard(text: text, isRunning: isRunning, result: result, onRun: {})
             .frame(width: 390)
             .environment(\.currentDate, referenceNow)
+            .environment(\.currentLocale, referenceLocale)
             .preferredColorScheme(colorScheme)
 
         assertSnapshot(of: view, as: .image, named: name, record: recordMode)
@@ -171,6 +180,7 @@ final class NotificationCardViewSnapshotTests: XCTestCase {
         let view = NotificationCardView(notification: item)
             .frame(width: 358)
             .environment(\.currentDate, referenceNow)
+            .environment(\.currentLocale, referenceLocale)
             .preferredColorScheme(colorScheme)
 
         assertSnapshot(of: view, as: .image, named: name, record: recordMode)
@@ -241,6 +251,7 @@ final class CategoryChipRowSnapshotTests: XCTestCase {
             CategoryChipRow(selection: $selection)
                 .frame(width: 390)
                 .environment(\.currentDate, referenceNow)
+                .environment(\.currentLocale, referenceLocale)
         }
     }
 
@@ -308,6 +319,7 @@ final class NotificationDashboardViewSnapshotTests: XCTestCase {
         }
         .modelContainer(container)
         .environment(\.currentDate, referenceNow)
+        .environment(\.currentLocale, referenceLocale)
         .preferredColorScheme(colorScheme)
         .frame(width: 390, height: 700)
 

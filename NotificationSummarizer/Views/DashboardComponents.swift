@@ -21,14 +21,34 @@ extension EnvironmentValues {
     }
 }
 
+/// Injectable locale used when formatting time-relative strings.
+///
+/// `RelativeDateTimeFormatter` renders the *same* instant differently per locale:
+/// `en_US` yields "3m ago" while `en_IN`/`en_GB` yield "3 min ago". Without pinning
+/// it, the rendered card depends on the machine the tests run on, and a baseline
+/// recorded on a developer's Mac fails on CI. Tests set this to a fixed locale;
+/// production always resolves to `Locale.current`, so this is behaviour-preserving.
+private struct SnapshotLocaleKey: EnvironmentKey {
+    static let defaultValue: Locale = .current
+}
+
+extension EnvironmentValues {
+    var currentLocale: Locale {
+        get { self[SnapshotLocaleKey.self] }
+        set { self[SnapshotLocaleKey.self] = newValue }
+    }
+}
+
 /// Renders a timestamp relative to an explicit reference instant.
 ///
 /// `RelativeDateTimeFormatter` accepts the reference date as a parameter, so the
-/// output depends only on `currentDate` and not on when the process runs. That
-/// determinism is what lets the string appear in a snapshot assertion.
-func relativeTimestamp(since timestamp: Date, from reference: Date) -> String {
+/// output depends only on `currentDate`/`currentLocale` and not on when or where
+/// the process runs. That determinism is what lets the string appear in a
+/// snapshot assertion.
+func relativeTimestamp(since timestamp: Date, from reference: Date, locale: Locale = .current) -> String {
     let formatter = RelativeDateTimeFormatter()
     formatter.unitsStyle = .abbreviated
+    formatter.locale = locale
     return formatter.localizedString(for: timestamp, relativeTo: reference)
 }
 
@@ -125,6 +145,7 @@ struct LocalAITestCard: View {
 struct NotificationCardView: View {
     let notification: SummarizedNotification
     @Environment(\.currentDate) private var currentDate
+    @Environment(\.currentLocale) private var currentLocale
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -136,8 +157,9 @@ struct NotificationCardView: View {
                     .padding(.vertical, 6)
                     .background(Color.accentColor.opacity(0.10), in: Capsule())
                 Spacer()
-                // Rendered relative to the injected clock, not the wall clock.
-                Text(relativeTimestamp(since: notification.timestamp, from: currentDate))
+                // Rendered relative to the injected clock and locale, not the
+                // wall clock or the device locale.
+                Text(relativeTimestamp(since: notification.timestamp, from: currentDate, locale: currentLocale))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
