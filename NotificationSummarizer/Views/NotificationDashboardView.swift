@@ -3,121 +3,130 @@ import SwiftUI
 
 /// Root of the app.
 ///
-/// The dashboard picks one of three structural layouts from the current size
-/// class, then hands a resolved `DashboardMetrics` down so every surface shares
-/// the same spacing, type scale and corner radii.
+/// The layout is resolved once, in `AdaptiveLayoutHost`, from the **measured**
+/// width of this view. Everything below reads the published
+/// `resolvedLayout`, so the sidebar, the card grid and the detail column can never
+/// disagree about how many columns fit.
 ///
-/// - `compact`  — iPhone portrait: chips + one column of cards, details pushed.
-/// - `medium`   — iPhone landscape or a narrow iPad window: two column grid with
-///   the AI test panel docked beside it.
-/// - `expanded` — iPad full screen: sidebar filters, multi column grid and a
-///   persistent detail column.
+/// - `compact`  (< 600pt) — iPhone portrait, Slide Over, narrow Split View:
+///   one column, scrolling filter chips, details pushed.
+/// - `medium`   (600–899pt) — iPhone landscape, iPad Split View:
+///   multi-column grid with the engine panel docked beside it.
+/// - `expanded` (>= 900pt) — full width iPad, Stage Manager:
+///   sidebar filters, content grid and a persistent detail column.
 struct NotificationDashboardView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-    @Environment(\.verticalSizeClass) private var verticalSizeClass
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @Query(sort: \SummarizedNotification.timestamp, order: .reverse) private var notifications: [SummarizedNotification]
 
     @State private var selectedCategory: NotificationCategory?
     @State private var selectedNotificationID: SummarizedNotification.ID?
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
-
-    private var layout: DashboardLayout {
-        DashboardLayout.resolve(
-            horizontal: horizontalSizeClass,
-            vertical: verticalSizeClass,
-            idiom: .current
-        )
-    }
-
-    private var metrics: DashboardMetrics {
-        DashboardMetrics.resolve(for: layout, dynamicTypeSize: dynamicTypeSize)
-    }
-
-    private var filtered: [SummarizedNotification] {
-        guard let selectedCategory else { return notifications }
-        return notifications.filter { $0.category == selectedCategory }
-    }
-
-    private var stats: NotificationStats {
-        NotificationStats.make(from: notifications)
-    }
-
-    private var selectedNotification: SummarizedNotification? {
-        guard let selectedNotificationID else { return nil }
-        return notifications.first { $0.id == selectedNotificationID }
-    }
+    @State private var engineText = "Your bank account ending in 4092 was charged $42.50 at Starbucks. Tap to view transaction."
+    @State private var isRunning = false
+    @State private var engineResult: String?
 
     var body: some View {
-        Group {
-            if metrics.showsCategorySidebar {
-                splitLayout
-            } else {
-                stackLayout
-            }
+        AdaptiveLayoutHost { layout in
+            content(for: layout)
         }
-        .adaptiveDashboardLayout()
         .task { seedDemoDataIfNeeded() }
     }
 
-    // MARK: - Expanded (iPad)
+    // MARK: - Structure
 
-    private var splitLayout: some View {
+    @ViewBuilder
+    private func content(for layout: ResolvedLayout) -> some View {
+        if layout.metrics.showsCategorySidebar {
+            splitLayout(layout)
+        } else {
+            stackLayout(layout)
+        }
+    }
+
+    // MARK: - Expanded
+
+    private func splitLayout(_ layout: ResolvedLayout) -> some View {
         // Column widths are declared per column rather than on the split view:
-        // modifiers applied to the split view itself do not reliably bind to the
-        // individual columns, which previously let the detail column swallow the
-        // width and collapse the grid to one column.
-        // The three ideals must sum to less than the narrowest iPad width we support
-        // (744pt on iPad mini), otherwise the split view has no layout that fits
-        // and resolves by collapsing a column and overflowing the others.
+        // the modifier binds to no particular column when applied to the split view
+        // itself, which previously let the detail column swallow the width and
+        // collapse the grid to a single column.
+        //
+        // The three ideals must sum to less than the narrowest width that can still
+        // reach `expanded` (900pt), otherwise there is no layout that fits and the
+        // split view resolves by collapsing a column and overflowing the others.
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            sidebar
+            sidebar(layout)
                 .navigationSplitViewColumnWidth(min: 170, ideal: 230, max: 300)
         } content: {
-            contentGrid(
-                header: { statsSummary },
-                onSelect: { notification in
-                    withAnimation(.snappy) { selectedNotificationID = notification.id }
-                },
-                selectedID: selectedNotificationID
-            )
-            .navigationTitle("Notifications")
-            .navigationBarTitleDisplayMode(.large)
-            .navigationSplitViewColumnWidth(min: 290, ideal: 330, max: 560)
+            contentColumn(layout)
+                .navigationTitle("Notifications")
+                .navigationBarTitleDisplayMode(.large)
+                .navigationSplitViewColumnWidth(min: 290, ideal: 330, max: 560)
         } detail: {
-            // Declared here on the detail branch itself. Applying
-            // `navigationSplitViewColumnWidth` to the NavigationSplitView binds to
-            // no particular column, which is why the detail previously stole the
-            // width and pushed the grid down to a single column.
+            // Also declared on the detail branch itself, for the same reason.
             Group {
                 if let selectedNotification {
-                    NotificationDetailView(notification: selectedNotification, metrics: metrics)
+                    NotificationDetailView(notification: selectedNotification)
                         .id(selectedNotification.id)
                 } else {
-                    DetailPlaceholderView(metrics: metrics, stats: stats)
+                    DetailPlaceholderView(stats: stats)
                 }
             }
             .navigationSplitViewColumnWidth(min: 260, ideal: 300, max: 460)
         }
         .navigationSplitViewStyle(.balanced)
-        // Three columns are the whole point of the expanded profile, so the
-        // sidebar stays visible rather than letting the system collapse it.
+        // Three columns are the point of the expanded profile, so keep the sidebar
+        // visible rather than letting the system collapse it.
         .onAppear { columnVisibility = .all }
-        .tint(.accentColor)
     }
 
-    private var sidebar: some View {
-        List(selection: $selectedCategory) {
-            Section {
-                sidebarFilterRow(
-                    title: "All",
-                    icon: "square.grid.2x2",
-                    count: stats.total,
-                    category: nil
-                )
+    // MARK: - Compact and medium
 
+    private func stackLayout(_ layout: ResolvedLayout) -> some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: layout.metrics.sectionSpacing) {
+                    StatsHeader(stats: stats, metrics: layout.metrics)
+
+                    CategoryFilterRow(
+                        selection: $selectedCategory,
+                        stats: stats,
+                        metrics: layout.metrics
+                    )
+
+                    if filtered.isEmpty {
+                        EmptyStateView(selectedCategory: selectedCategory)
+                    } else {
+                        AdaptiveCardGrid {
+                            ForEach(filtered) { notification in
+                                NotificationCardView(notification: notification)
+                            }
+                        }
+                    }
+
+                    enginePanel(layout)
+                        .environment(\.resolvedLayout, layout)
+                }
+                .padding(layout.metrics.contentPadding)
+                .readableContentWidth()
+            }
+            .background(Color(uiColor: .systemGroupedBackground))
+            .navigationTitle("Notifications")
+            .navigationDestination(item: $selectedNotificationID) { id in
+                if let notification = notifications.first(where: { $0.id == id }) {
+                    NotificationDetailView(notification: notification)
+                }
+            }
+        }
+    }
+
+    // MARK: - Sidebar
+
+    private func sidebar(_ layout: ResolvedLayout) -> some View {
+        List(selection: $selectedCategory) {
+            Section("Categories") {
+                sidebarFilterRow(title: "All", icon: "square.grid.2x2", count: stats.total, category: nil)
                 ForEach(NotificationCategory.allCases) { category in
                     sidebarFilterRow(
                         title: category.rawValue,
@@ -126,24 +135,25 @@ struct NotificationDashboardView: View {
                         category: category
                     )
                 }
-            } header: {
-                Text("Categories")
             }
 
             Section {
-                LayoutProfileBadge(layout: layout, horizontal: horizontalSizeClass, vertical: verticalSizeClass)
+                LayoutProfileBadge(profile: layout.profile, width: layout.width)
                     .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
             }
 
-            Section {
-                AdaptiveLocalAITestCard(metrics: metrics)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 12, trailing: 12))
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-            } header: {
-                Text("On-device engine")
+            Section("On-device engine") {
+                VStack(alignment: .leading, spacing: 12) {
+                    EnginePanel(text: .constant(engineText), isRunning: isRunning, result: engineResult)
+                    EngineRunButton(isRunning: isRunning, canRun: canRun) {
+                        runEngine()
+                    }
+                }
+                .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 12, trailing: 12))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
         }
         .listStyle(.sidebar)
@@ -154,7 +164,7 @@ struct NotificationDashboardView: View {
     private func sidebarFilterRow(title: String, icon: String, count: Int, category: NotificationCategory?) -> some View {
         Button {
             selectedCategory = category
-            // Keep the detail column in sync when the new filter has no selection.
+            // Keep the detail column in sync when the new filter excludes the selection.
             if let selectedNotification, selectedNotification.category != category {
                 selectedNotificationID = nil
             }
@@ -170,7 +180,7 @@ struct NotificationDashboardView: View {
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
-            .frame(minHeight: metrics.minimumTapTarget)
+            .frame(minHeight: LayoutMetrics.resolve(for: .expanded).minimumTapTarget)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -178,128 +188,88 @@ struct NotificationDashboardView: View {
         .accessibilityAddTraits(selectedCategory == category ? [.isSelected] : [])
     }
 
-    // MARK: - Compact and medium
+    // MARK: - Content column (expanded)
 
-    private var stackLayout: some View {
-        NavigationStack {
-            ScrollView {
-                if metrics.stacksTestCardAboveList {
-                    compactColumn
-                } else {
-                    mediumColumn
-                }
-            }
-            .background(Color(uiColor: .systemGroupedBackground))
-            .navigationTitle("Notifications")
-            .navigationDestination(item: $selectedNotificationID) { id in
-                if let notification = notifications.first(where: { $0.id == id }) {
-                    NotificationDetailView(notification: notification, metrics: metrics)
-                }
-            }
-        }
-    }
-
-    /// iPhone portrait: everything stacked in one scrollable, readable column.
-    private var compactColumn: some View {
-        VStack(alignment: .leading, spacing: metrics.sectionSpacing) {
-            if metrics.showsInlineStatsHeader {
-                statsSummary
-            }
-
-            CategoryFilterView(selection: $selectedCategory, stats: stats, metrics: metrics)
-
-            if filtered.isEmpty {
-                emptyState
-            } else {
-                LazyVStack(spacing: metrics.cardSpacing) {
-                    ForEach(filtered) { notification in
-                        AdaptiveNotificationCardView(notification: notification, metrics: metrics)
-                    }
-                }
-            }
-
-            AdaptiveLocalAITestCard(metrics: metrics)
-        }
-        .padding(metrics.contentPadding)
-        .readableContentWidth()
-    }
-
-    /// iPhone landscape: list on the left, engine panel docked on the right so
-    /// neither column is squeezed into an unusable height.
-    private var mediumColumn: some View {
-        HStack(alignment: .top, spacing: metrics.cardSpacing) {
-            VStack(alignment: .leading, spacing: metrics.sectionSpacing) {
-                if metrics.showsInlineStatsHeader {
-                    statsSummary
-                }
-
-                CategoryFilterView(selection: $selectedCategory, stats: stats, metrics: metrics)
-
-                if filtered.isEmpty {
-                    emptyState
-                } else {
-                    LazyVGrid(columns: metrics.gridColumns, alignment: .leading, spacing: metrics.cardSpacing) {
-                        ForEach(filtered) { notification in
-                            AdaptiveNotificationCardView(notification: notification, metrics: metrics)
-                        }
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            AdaptiveLocalAITestCard(metrics: metrics)
-                .frame(width: 300)
-        }
-        .padding(metrics.contentPadding)
-    }
-
-    // MARK: - Shared pieces
-
-    private var statsSummary: some View {
-        StatsHeaderView(stats: stats, metrics: metrics)
-    }
-
-    private func contentGrid(
-        header: @escaping () -> some View,
-        onSelect: @escaping (SummarizedNotification) -> Void,
-        selectedID: SummarizedNotification.ID?
-    ) -> some View {
+    private func contentColumn(_ layout: ResolvedLayout) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: metrics.sectionSpacing) {
-                header()
-
+            VStack(alignment: .leading, spacing: layout.metrics.sectionSpacing) {
                 if filtered.isEmpty {
-                    emptyState
+                    EmptyStateView(selectedCategory: selectedCategory)
                 } else {
-                    LazyVGrid(columns: metrics.gridColumns, alignment: .leading, spacing: metrics.cardSpacing) {
+                    AdaptiveCardGrid {
                         ForEach(filtered) { notification in
-                            AdaptiveNotificationCardView(
+                            NotificationCardView(
                                 notification: notification,
-                                metrics: metrics,
-                                isSelected: notification.id == selectedID
+                                isSelected: notification.id == selectedNotificationID
                             )
-                            .onTapGesture { onSelect(notification) }
+                            .onTapGesture {
+                                withAnimation(.snappy) { selectedNotificationID = notification.id }
+                            }
                         }
                     }
                 }
             }
-            .padding(metrics.contentPadding)
+            .padding(layout.metrics.contentPadding)
             .readableContentWidth()
         }
         .background(Color(uiColor: .systemGroupedBackground))
     }
 
-    private var emptyState: some View {
-        ContentUnavailableView {
-            Label("Nothing here", systemImage: "tray")
-        } description: {
-            Text(selectedCategory.map { "No \($0.rawValue.lowercased()) notifications yet." } ?? "No notifications yet.")
+    // MARK: - Engine
+
+    @ViewBuilder
+    private func enginePanel(_ layout: ResolvedLayout) -> some View {
+        if layout.metrics.stacksEnginePanelAboveList {
+            VStack(spacing: 12) {
+                EnginePanel(text: $engineText, isRunning: isRunning, result: engineResult)
+                EngineRunButton(isRunning: isRunning, canRun: canRun) { runEngine() }
+            }
+        } else {
+            // Wide but short: dock the panel beside the content so neither column is
+            // squeezed. Sized as a share of the measured width rather than a fixed
+            // 300pt, which overflowed narrow Split View windows.
+            VStack(spacing: 12) {
+                EnginePanel(text: $engineText, isRunning: isRunning, result: engineResult)
+                EngineRunButton(isRunning: isRunning, canRun: canRun) { runEngine() }
+            }
+            .frame(width: max(260, min(340, layout.width * 0.32)))
+            .frame(maxWidth: .infinity, alignment: .trailing)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, metrics.sectionSpacing)
     }
 
-    // MARK: - Demo data
+    private var canRun: Bool {
+        !isRunning && !engineText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func runEngine() {
+        guard canRun else { return }
+
+        Task {
+            isRunning = true
+            defer { isRunning = false }
+
+            let engine = LocalMLEngineActor.shared
+            let category = await engine.classify(text: engineText)
+            let summary = await (try? engine.summarize(text: engineText)) ?? "Unable to summarize."
+            engineResult = "\(category.rawValue) • \(summary)"
+        }
+    }
+
+    // MARK: - Data
+
+    private var filtered: [SummarizedNotification] {
+        guard let selectedCategory else { return notifications }
+        return notifications.filter { $0.category == selectedCategory }
+    }
+
+    private var stats: NotificationStats {
+        NotificationStats.make(from: notifications)
+    }
+
+    private var selectedNotification: SummarizedNotification? {
+        guard let selectedNotificationID else { return nil }
+        return notifications.first { $0.id == selectedNotificationID }
+    }
 
     private func seedDemoDataIfNeeded() {
         guard notifications.isEmpty else { return }
@@ -340,24 +310,23 @@ struct NotificationDashboardView: View {
     }
 }
 
-/// Surfaces the active profile in the iPad sidebar.
+/// Surfaces the live layout decision in the sidebar.
 ///
-/// Useful while designing: it makes the size class the layout resolved to
-/// visible at runtime instead of only in the Xcode preview device selector.
+/// Useful while designing: it makes the measured width and the profile it resolved
+/// to visible at runtime instead of only in the Xcode preview device selector.
 struct LayoutProfileBadge: View {
-    let layout: DashboardLayout
-    let horizontal: UserInterfaceSizeClass?
-    let vertical: UserInterfaceSizeClass?
+    let profile: LayoutProfile
+    let width: CGFloat
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: layout.systemImage)
+            Image(systemName: profile.systemImage)
                 .foregroundStyle(Color.accentColor)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(layout.title)
+                Text(profile.title)
                     .font(.subheadline.weight(.semibold))
-                Text(sizeClassSummary)
+                Text("\(Int(width.rounded()))pt")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .monospaced()
@@ -369,58 +338,18 @@ struct LayoutProfileBadge: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Layout \(layout.title), size class \(sizeClassSummary)")
-    }
-
-    private var sizeClassSummary: String {
-        "h: \(horizontal.shortTitle) · v: \(vertical.shortTitle)"
-    }
-}
-
-extension UserInterfaceSizeClass? {
-    var shortTitle: String {
-        switch self {
-        case .some(.compact): "compact"
-        case .some(.regular): "regular"
-        case .none: "nil"
-        @unknown default: "unknown"
-        }
+        .accessibilityLabel("Layout \(profile.title), \(Int(width.rounded())) points wide")
     }
 }
 
 // MARK: - Previews
 
-// SwiftUI resolves size classes from the traits supplied to the preview
-// provider, so these previews exercise the real branch each device selects.
-#Preview("iPhone portrait — compact", traits: .fixedLayout(width: 393, height: 852)) {
-    previewDashboard
-}
-
-#Preview("iPhone landscape — medium", traits: .fixedLayout(width: 852, height: 393)) {
-    previewDashboard
-}
-
-#Preview("iPad portrait — expanded", traits: .fixedLayout(width: 834, height: 1194)) {
-    previewDashboard
-}
-
-#Preview("iPad Split View — medium", traits: .fixedLayout(width: 507, height: 1194)) {
-    previewDashboard
-}
-
-#Preview("iPhone accessibility size", traits: .fixedLayout(width: 393, height: 852)) {
-    previewDashboard
-        .dynamicTypeSize(.accessibility3)
-}
-
 @MainActor
-private var previewDashboard: some View {
+private func previewContainer(_ count: Int = 3) -> ModelContainer {
     let container = try! ModelContainer(
         for: SummarizedNotification.self,
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     )
-    let context = container.mainContext
-
     let samples: [(String, String, NotificationCategory)] = [
         (
             "Your bank account ending in 4092 was charged $42.50 at Starbucks. Tap to view transaction.",
@@ -439,8 +368,8 @@ private var previewDashboard: some View {
         ),
     ]
 
-    for (index, sample) in samples.enumerated() {
-        context.insert(
+    for (index, sample) in samples.prefix(count).enumerated() {
+        container.mainContext.insert(
             SummarizedNotification(
                 originalText: sample.0,
                 summary: sample.1,
@@ -450,5 +379,20 @@ private var previewDashboard: some View {
         )
     }
 
-    return NotificationDashboardView().modelContainer(container)
+    return container
+}
+
+#Preview("Compact — 390pt") {
+    NotificationDashboardView().modelContainer(previewContainer())
+        .frame(width: 390, height: 844)
+}
+
+#Preview("Medium — 700pt") {
+    NotificationDashboardView().modelContainer(previewContainer())
+        .frame(width: 700, height: 500)
+}
+
+#Preview("Expanded — 1024pt") {
+    NotificationDashboardView().modelContainer(previewContainer())
+        .frame(width: 1024, height: 768)
 }

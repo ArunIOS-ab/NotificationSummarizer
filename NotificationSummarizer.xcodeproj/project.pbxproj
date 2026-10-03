@@ -14,6 +14,11 @@
 		A10000000000000000000005 /* WordPieceTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* WordPieceTokenizer.swift */; };
 		A10000000000000000000006 /* SummarizeNotificationsIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000006 /* SummarizeNotificationsIntent.swift */; };
 		A10000000000000000000007 /* NotificationDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000007 /* NotificationDashboardView.swift */; };
+		A10000000000000000000020 /* LayoutProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000020 /* LayoutProfile.swift */; };
+		A10000000000000000000021 /* AdaptiveLayoutHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000021 /* AdaptiveLayoutHost.swift */; };
+		A10000000000000000000022 /* DashboardComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000022 /* DashboardComponents.swift */; };
+		A10000000000000000000023 /* EnginePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000023 /* EnginePanel.swift */; };
+		A10000000000000000000024 /* NotificationCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000024 /* NotificationCardView.swift */; };
 		A10000000000000000000008 /* NotificationClassifier.mlpackage in Resources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000A /* NotificationClassifier.mlpackage */; };
 		A10000000000000000000009 /* Tokenizer in Resources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000B /* Tokenizer */; };
 		A10000000000000000000010 /* RuleClassifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000010 /* RuleClassifierTests.swift */; };
@@ -22,12 +27,8 @@
 		A10000000000000000000013 /* NotificationCategoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* NotificationCategoryTests.swift */; };
 		A10000000000000000000014 /* LocalMLEngineActorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000014 /* LocalMLEngineActorTests.swift */; };
 		A10000000000000000000015 /* SnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000016 /* SnapshotTests.swift */; };
+		A10000000000000000000025 /* LayoutProfileTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000025 /* LayoutProfileTests.swift */; };
 		A10000000000000000000016 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = R10000000000000000000002 /* SnapshotTesting */; };
-		A10000000000000000000017 /* DashboardComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017 /* DashboardComponents.swift */; };
-		A10000000000000000000020 /* DashboardLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000020 /* DashboardLayout.swift */; };
-		A10000000000000000000021 /* AdaptiveDashboardComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000021 /* AdaptiveDashboardComponents.swift */; };
-		A10000000000000000000022 /* AdaptiveLocalAITestCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000022 /* AdaptiveLocalAITestCard.swift */; };
-		A10000000000000000000023 /* AdaptiveNotificationCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000023 /* AdaptiveNotificationCardView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -48,6 +49,11 @@
 		B10000000000000000000005 /* WordPieceTokenizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordPieceTokenizer.swift; sourceTree = "<group>"; };
 		B10000000000000000000006 /* SummarizeNotificationsIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SummarizeNotificationsIntent.swift; sourceTree = "<group>"; };
 		B10000000000000000000007 /* NotificationDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationDashboardView.swift; sourceTree = "<group>"; };
+		B10000000000000000000020 /* LayoutProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutProfile.swift; sourceTree = "<group>"; };
+		B10000000000000000000021 /* AdaptiveLayoutHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveLayoutHost.swift; sourceTree = "<group>"; };
+		B10000000000000000000024 /* NotificationCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCardView.swift; sourceTree = "<group>"; };
+		B10000000000000000000022 /* DashboardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardComponents.swift; sourceTree = "<group>"; };
+		B10000000000000000000023 /* EnginePanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnginePanel.swift; sourceTree = "<group>"; };
 		B10000000000000000000008 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B10000000000000000000009 /* NotificationSummarizer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NotificationSummarizer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1000000000000000000000A /* NotificationClassifier.mlpackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper.mlpackage; path = NotificationClassifier.mlpackage; sourceTree = "<group>"; };
@@ -59,11 +65,7 @@
 		B10000000000000000000014 /* LocalMLEngineActorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalMLEngineActorTests.swift; sourceTree = "<group>"; };
 		B10000000000000000000015 /* NotificationSummarizerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotificationSummarizerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B10000000000000000000016 /* SnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotTests.swift; sourceTree = "<group>"; };
-		B10000000000000000000017 /* DashboardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardComponents.swift; sourceTree = "<group>"; };
-		B10000000000000000000020 /* DashboardLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardLayout.swift; sourceTree = "<group>"; };
-		B10000000000000000000021 /* AdaptiveDashboardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveDashboardComponents.swift; sourceTree = "<group>"; };
-		B10000000000000000000022 /* AdaptiveLocalAITestCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveLocalAITestCard.swift; sourceTree = "<group>"; };
-		B10000000000000000000023 /* AdaptiveNotificationCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveNotificationCardView.swift; sourceTree = "<group>"; };
+		B10000000000000000000025 /* LayoutProfileTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutProfileTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -157,10 +159,11 @@
 		D1000000000000000000000C /* Adaptive */ = {
 			isa = PBXGroup;
 			children = (
-				B10000000000000000000020 /* DashboardLayout.swift */,
-				B10000000000000000000021 /* AdaptiveDashboardComponents.swift */,
-				B10000000000000000000022 /* AdaptiveLocalAITestCard.swift */,
-				B10000000000000000000023 /* AdaptiveNotificationCardView.swift */,
+				B10000000000000000000020 /* LayoutProfile.swift */,
+				B10000000000000000000021 /* AdaptiveLayoutHost.swift */,
+				B10000000000000000000022 /* DashboardComponents.swift */,
+				B10000000000000000000023 /* EnginePanel.swift */,
+				B10000000000000000000024 /* NotificationCardView.swift */,
 			);
 			path = Adaptive;
 			sourceTree = "<group>";
@@ -182,6 +185,7 @@
 				B10000000000000000000013 /* NotificationCategoryTests.swift */,
 				B10000000000000000000014 /* LocalMLEngineActorTests.swift */,
 				B10000000000000000000016 /* SnapshotTests.swift */,
+				B10000000000000000000025 /* LayoutProfileTests.swift */,
 			);
 			path = NotificationSummarizerTests;
 			sourceTree = "<group>";
@@ -293,6 +297,7 @@
 				A10000000000000000000013 /* NotificationCategoryTests.swift in Sources */,
 				A10000000000000000000014 /* LocalMLEngineActorTests.swift in Sources */,
 				A10000000000000000000015 /* SnapshotTests.swift in Sources */,
+				A10000000000000000000025 /* LayoutProfileTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -308,11 +313,11 @@
 				A10000000000000000000005 /* WordPieceTokenizer.swift in Sources */,
 				A10000000000000000000006 /* SummarizeNotificationsIntent.swift in Sources */,
 				A10000000000000000000007 /* NotificationDashboardView.swift in Sources */,
-				A10000000000000000000017 /* DashboardComponents.swift in Sources */,
-				A10000000000000000000020 /* DashboardLayout.swift in Sources */,
-				A10000000000000000000021 /* AdaptiveDashboardComponents.swift in Sources */,
-				A10000000000000000000022 /* AdaptiveLocalAITestCard.swift in Sources */,
-				A10000000000000000000023 /* AdaptiveNotificationCardView.swift in Sources */,
+				A10000000000000000000020 /* LayoutProfile.swift in Sources */,
+				A10000000000000000000021 /* AdaptiveLayoutHost.swift in Sources */,
+				A10000000000000000000022 /* DashboardComponents.swift in Sources */,
+				A10000000000000000000023 /* EnginePanel.swift in Sources */,
+				A10000000000000000000024 /* NotificationCardView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
