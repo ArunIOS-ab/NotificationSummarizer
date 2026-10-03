@@ -1,0 +1,69 @@
+name: Resolve pinned simulator
+description: >-
+  Resolves the pinned snapshot simulator by exact name + OS match and exposes
+  its UDID as the `udid` output.
+
+# Shared by the `ios-ci` and `record-snapshots` jobs so the pin is defined and
+# resolved in exactly one place. Duplicating the resolution logic would let the
+# two jobs drift onto different simulators, which is precisely the bug that made
+# the baselines irreproducible.
+
+inputs:
+  name:
+    description: Device name to match exactly (e.g. "iPhone 17 Pro").
+    required: true
+  os:
+    description: OS version to match, dotted form (e.g. "26.5").
+    required: true
+
+outputs:
+  udid:
+    description: UDID of the resolved simulator.
+    value: ${{ steps.resolve.outputs.udid }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve simulator by exact match
+      id: resolve
+      shell: bash
+      env:
+        SIM_NAME: ${{ inputs.name }}
+        SIM_OS: ${{ inputs.os }}
+      run: |
+        set -euo pipefail
+
+        # Exact name + exact OS match. Nothing here is "newest" or
+        # lexicographically-last: swift-snapshot-testing image assertions are
+        # pixel-exact, so any drift in device model or OS invalidates every
+        # baseline at once. A previous version of this logic sorted device names
+        # as strings and took the last one, which resolved to "iPhone Air"
+        # because 'A' sorts after '1'.
+        UDID=$(xcrun simctl list devices available -j \
+          | python3 -c "
+        import json, os, sys
+        data = json.load(sys.stdin)['devices']
+        want_name = os.environ['SIM_NAME']
+        # Runtime ids spell the version as iOS-26-5, not 26.5.
+        want_os = 'iOS-' + os.environ['SIM_OS'].replace('.', '-')
+        for runtime_id, devices in data.items():
+            # endswith also excludes tvOS/watchOS/visionOS runtimes, whose ids
+            # merely contain 'iOS-26-5' as a substring.
+            if not runtime_id.endswith(want_os):
+                continue
+            for d in devices:
+                if d['isAvailable'] and d['name'] == want_name:
+                    print(d['udid'])
+                    sys.exit(0)
+        sys.exit(1)
+        ") || {
+          echo "::error::Pinned simulator '$SIM_NAME' on iOS $SIM_OS is not available."
+          echo "Image baselines only reproduce on the exact device/OS that recorded them."
+          echo "Re-record them via: gh workflow run 'iOS CI' -f record_snapshots=true"
+          echo "Available devices:"
+          xcrun simctl list devices available
+          exit 1
+        }
+
+        echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+        echo "Using $SIM_NAME on iOS $SIM_OS ($UDID)"

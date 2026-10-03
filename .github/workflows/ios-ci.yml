@@ -11,6 +11,15 @@ on:
     branches: [main, develop]
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      record_snapshots:
+        description: >-
+          Re-record the snapshot reference images on the pinned simulator and
+          commit them to the current branch. Only works on same-repository
+          branches; leaves the verification run skipped.
+        type: boolean
+        default: false
 
 # ==============================================================================
 # Bitrise equivalent: workflow-level permissions
@@ -31,6 +40,11 @@ concurrency:
 
 jobs:
   ios-ci:
+    # Skipped when a recording run is requested: the record job re-runs the same
+    # suite in the opposite mode, so verifying here as well would compare freshly
+    # recorded baselines against themselves.
+    if: github.event_name != 'workflow_dispatch' || !inputs.record_snapshots
+
     # Bitrise equivalent: machine / stack selection
     #
     # macos-14 (Sonoma) is deprecated and becomes fully unsupported on
@@ -56,9 +70,11 @@ jobs:
       DERIVED_DATA: ${{ github.workspace }}/build/DerivedData
       RESULT_BUNDLE: ${{ github.workspace }}/build/TestResults.xcresult
       # Snapshot image assertions are pixel-exact, so the simulator is pinned to
-      # the device/OS the baselines in NotificationSummarizerTests/__Snapshots__
-      # were recorded on. Changing these without re-recording fails every image.
-      SIMULATOR_NAME: iPhone 18
+      # the one device/OS the baselines are recorded against. These are the
+      # values the `record-snapshots` job records with, and the ones
+      # `ios-ci` verifies against -- both resolve them via the shared
+      # pinned-simulator action, so they cannot drift apart.
+      SIMULATOR_NAME: iPhone 17 Pro
       SIMULATOR_OS: "26.5"
 
     steps:
@@ -197,50 +213,12 @@ jobs:
       # --------------------------------------------------------------------------
       - name: Resolve simulator destination
         id: sim
-        run: |
-          set -euo pipefail
-          # The destination is PINNED, not discovered.
-          #
-          # swift-snapshot-testing image assertions are pixel-exact, so they only
-          # reproduce on the same device model and OS the baselines were recorded
-          # on. Device model is not cosmetic: it changes the safe-area insets,
-          # which shifts NavigationStack title insets and scroll content, so every
-          # image in the suite mismatches at once.
-          #
-          # The baselines in NotificationSummarizerTests/__Snapshots__ were recorded
-          # on iPhone 18 / iOS 26.5 (see the project's UserInterfaceState.xcuserstate),
-          # so that is what is pinned below.
-          #
-          # This step previously picked the lexicographically-last iPhone name,
-          # which resolved to "iPhone Air" because 'A' sorts after '1' - i.e. a
-          # different device than the one that produced the baselines. That was the
-          # same string-sort trap already fixed for runtime versions just below.
-          UDID=$(xcrun simctl list devices available -j \
-            | SIM_NAME="$SIMULATOR_NAME" SIM_OS="$SIMULATOR_OS" python3 -c "
-          import json, os, sys
-          data = json.load(sys.stdin)['devices']
-          want_name = os.environ['SIM_NAME']
-          # Runtime ids spell the version as iOS-26-5, not 26.5.
-          want_os = 'iOS-' + os.environ['SIM_OS'].replace('.', '-')
-          for runtime_id, devices in data.items():
-              if not runtime_id.endswith(want_os):
-                  continue
-              for d in devices:
-                  if d['isAvailable'] and d['name'] == want_name:
-                      print(d['udid'])
-                      sys.exit(0)
-          sys.exit(1)
-          ") || {
-            echo "::error::Pinned simulator '$SIMULATOR_NAME' on iOS $SIMULATOR_OS is not available."
-            echo "Image baselines only reproduce on the exact device/OS that recorded them."
-            echo "Either re-record the baselines on that simulator, or update SIMULATOR_NAME"
-            echo "/ SIMULATOR_OS at the top of this workflow to match where they were recorded."
-            echo "Available devices:"
-            xcrun simctl list devices available
-            exit 1
-          }
-          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
-          echo "Using $SIMULATOR_NAME on iOS $SIMULATOR_OS ($UDID)"
+        # Resolution logic is shared with the `record-snapshots` job so the
+        # recorder and the verifier can never land on different simulators.
+        uses: ./.github/actions/pinned-simulator
+        with:
+          name: ${{ env.SIMULATOR_NAME }}
+          os: ${{ env.SIMULATOR_OS }}
 
       - name: Verify snapshot reference images are committed
         # Snapshot baselines live in NotificationSummarizerTests/__Snapshots__ and
@@ -303,3 +281,108 @@ jobs:
             ${{ env.DERIVED_DATA }}/Logs
           retention-days: 14
           if-no-files-found: warn
+
+  # ============================================================================
+  # record-snapshots
+  #   Regenerates NotificationSummarizerTests/__Snapshots__ on the same pinned
+  #   simulator `ios-ci` verifies against, and pushes the result.
+  #
+  #   Why this exists: pixel-exact image baselines are only meaningful if they
+  #   were recorded in the same environment that verifies them. They cannot be
+  #   re-recorded reliably on a developer machine, because the device/OS it was
+  #   recorded on may not exist on the runner (this repo's baselines were
+  #   recorded on a simulator absent from macos-26, so they failed 29/29 no
+  #   matter how the destination was pinned). Recording in CI removes the
+  #   developer's machine from the equation entirely.
+  #
+  #   Trigger: gh workflow run "iOS CI" -f record_snapshots=true
+  # ============================================================================
+  record-snapshots:
+    # No fork check here: `workflow_dispatch` can only be triggered on a
+    # repository the actor already has write access to. A pull_request fork
+    # guard would be wrong anyway -- that payload does not exist on dispatch,
+    # so the expression would be false and this job would never run at all.
+    if: github.event_name == 'workflow_dispatch' && inputs.record_snapshots
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    defaults:
+      run:
+        working-directory: .
+
+    env:
+      PROJECT: NotificationSummarizer.xcodeproj
+      SCHEME: NotificationSummarizer
+      DERIVED_DATA: ${{ github.workspace }}/build/DerivedData
+      SIMULATOR_NAME: iPhone 17 Pro
+      SIMULATOR_OS: "26.5"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # The Core ML package is Git LFS; without this the pointers are
+          # committed instead of the real model and coremlc fails the build.
+          lfs: true
+
+      - name: Select Xcode version
+        run: |
+          XCODE_APP="/Applications/Xcode_26.6.app"
+          if [ ! -d "$XCODE_APP" ]; then
+            echo "::error::$XCODE_APP not found on this runner image."
+            ls -d /Applications/Xcode*.app
+            exit 1
+          fi
+          sudo xcode-select -switch "$XCODE_APP"
+
+      - name: Resolve simulator destination
+        id: sim
+        uses: ./.github/actions/pinned-simulator
+        with:
+          name: ${{ env.SIMULATOR_NAME }}
+          os: ${{ env.SIMULATOR_OS }}
+
+      - name: Delete existing reference images
+        # Record mode is `.missing`, which only writes files that do not exist
+        # yet. Without deleting the current PNGs the suite would compare against
+        # the stale baselines and "pass" without regenerating anything.
+        run: |
+          set -euo pipefail
+          COUNT=$(find NotificationSummarizerTests/__Snapshots__ -name '*.png' | wc -l | tr -d ' ')
+          echo "Removing $COUNT existing reference images"
+          rm -rf NotificationSummarizerTests/__Snapshots__
+          mkdir -p NotificationSummarizerTests/__Snapshots__
+
+      - name: Re-record reference images
+        # SNAPSHOT_TESTING_RECORD is deliberately left unset: SnapshotTests.swift
+        # selects `.missing` (record) for anything other than "never".
+        run: |
+          set -o pipefail
+          mkdir -p build
+          xcodebuild test \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
+            -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify
+
+      - name: Verify reference images were regenerated
+        run: |
+          set -euo pipefail
+          COUNT=$(find NotificationSummarizerTests/__Snapshots__ -name '*.png' | wc -l | tr -d ' ')
+          echo "Regenerated $COUNT reference images"
+          if [ "$COUNT" -eq 0 ]; then
+            echo "::error::Recording produced no reference images."
+            exit 1
+          fi
+          git status --short
+
+      - name: Commit regenerated reference images
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com>'
+          git add NotificationSummarizerTests/__Snapshots__
+          git commit -m '[ci] Re-record snapshot reference images on '"$SIMULATOR_NAME"
+          git push origin HEAD:"$GITHUB_REF_NAME"
