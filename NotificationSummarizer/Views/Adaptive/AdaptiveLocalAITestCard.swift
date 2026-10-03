@@ -6,7 +6,7 @@ import SwiftUI
 /// - The editor grows with the profile so it never dominates a full screen iPad.
 /// - The result is announced with `accessibilityLiveRegion` because the button
 ///   triggers asynchronous work and VoiceOver would otherwise stay silent.
-struct LocalAITestCard: View {
+struct AdaptiveLocalAITestCard: View {
     let metrics: DashboardMetrics
 
     @State private var text = "Your bank account ending in 4092 was charged $42.50 at Starbucks. Tap to view transaction."
@@ -107,8 +107,8 @@ struct LocalAITestCard: View {
 
 #Preview {
     VStack {
-        LocalAITestCard(metrics: .resolve(for: .compact))
-        LocalAITestCard(metrics: .resolve(for: .expanded))
+        AdaptiveLocalAITestCard(metrics: .resolve(for: .compact))
+        AdaptiveLocalAITestCard(metrics: .resolve(for: .expanded))
     }
     .padding()
 }

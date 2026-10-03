@@ -6,12 +6,16 @@ import SwiftUI
 /// The card is the only piece shared by every layout profile, so all
 /// size class specific work is limited to the tokens it receives from
 /// `DashboardMetrics`.
-struct NotificationCardView: View {
+struct AdaptiveNotificationCardView: View {
     let notification: SummarizedNotification
     let metrics: DashboardMetrics
     var isSelected: Bool = false
 
     @Environment(\.modelContext) private var modelContext
+    // Rendered against an injected clock and locale rather than the wall clock, so
+    // a snapshot of this card is stable over time and across device locales.
+    @Environment(\.currentDate) private var currentDate
+    @Environment(\.currentLocale) private var currentLocale
 
     private var tint: Color { notification.category.tint }
 
@@ -69,7 +73,7 @@ struct NotificationCardView: View {
 
             Spacer(minLength: 0)
 
-            Text(notification.timestamp, style: .relative)
+            Text(relativeTimestamp(since: notification.timestamp, from: currentDate, locale: currentLocale))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)

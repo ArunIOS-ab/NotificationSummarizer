@@ -138,7 +138,7 @@ struct NotificationDashboardView: View {
             }
 
             Section {
-                LocalAITestCard(metrics: metrics)
+                AdaptiveLocalAITestCard(metrics: metrics)
                     .listRowInsets(EdgeInsets(top: 8, leading: 12, bottom: 12, trailing: 12))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -213,12 +213,12 @@ struct NotificationDashboardView: View {
             } else {
                 LazyVStack(spacing: metrics.cardSpacing) {
                     ForEach(filtered) { notification in
-                        NotificationCardView(notification: notification, metrics: metrics)
+                        AdaptiveNotificationCardView(notification: notification, metrics: metrics)
                     }
                 }
             }
 
-            LocalAITestCard(metrics: metrics)
+            AdaptiveLocalAITestCard(metrics: metrics)
         }
         .padding(metrics.contentPadding)
         .readableContentWidth()
@@ -240,14 +240,14 @@ struct NotificationDashboardView: View {
                 } else {
                     LazyVGrid(columns: metrics.gridColumns, alignment: .leading, spacing: metrics.cardSpacing) {
                         ForEach(filtered) { notification in
-                            NotificationCardView(notification: notification, metrics: metrics)
+                            AdaptiveNotificationCardView(notification: notification, metrics: metrics)
                         }
                     }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            LocalAITestCard(metrics: metrics)
+            AdaptiveLocalAITestCard(metrics: metrics)
                 .frame(width: 300)
         }
         .padding(metrics.contentPadding)
@@ -274,7 +274,7 @@ struct NotificationDashboardView: View {
                 } else {
                     LazyVGrid(columns: metrics.gridColumns, alignment: .leading, spacing: metrics.cardSpacing) {
                         ForEach(filtered) { notification in
-                            NotificationCardView(
+                            AdaptiveNotificationCardView(
                                 notification: notification,
                                 metrics: metrics,
                                 isSelected: notification.id == selectedID

@@ -31,15 +31,21 @@ struct WordPieceTokenizer: Sendable {
         let room = max(0, maxLength - 2)
         for word in words {
             for id in wordPiece(word) {
-                if ids.count >= room + 1 { break }
+                if ids.count >= room + 1 {
+                    break
+                }
                 ids.append(Int32(id))
             }
-            if ids.count >= room + 1 { break }
+            if ids.count >= room + 1 {
+                break
+            }
         }
         ids.append(Int32(sepID))
         ids = Array(ids.prefix(maxLength))
         let realCount = ids.count
-        if ids.count < maxLength { ids += Array(repeating: Int32(padID), count: maxLength - ids.count) }
+        if ids.count < maxLength {
+            ids += Array(repeating: Int32(padID), count: maxLength - ids.count)
+        }
         let mask = Array(repeating: Int32(1), count: realCount) + Array(repeating: Int32(0), count: maxLength - realCount)
         return (ids, mask)
     }
@@ -49,20 +55,28 @@ struct WordPieceTokenizer: Sendable {
         var current = ""
         for scalar in text.unicodeScalars {
             if CharacterSet.whitespacesAndNewlines.contains(scalar) {
-                if !current.isEmpty { tokens.append(current); current = "" }
+                if !current.isEmpty {
+                    tokens.append(current); current = ""
+                }
             } else if CharacterSet.punctuationCharacters.contains(scalar) {
-                if !current.isEmpty { tokens.append(current); current = "" }
+                if !current.isEmpty {
+                    tokens.append(current); current = ""
+                }
                 tokens.append(String(scalar))
             } else {
                 current.append(String(scalar))
             }
         }
-        if !current.isEmpty { tokens.append(current) }
+        if !current.isEmpty {
+            tokens.append(current)
+        }
         return tokens
     }
 
     private func wordPiece(_ word: String) -> [Int] {
-        if let id = vocabulary[word] { return [id] }
+        if let id = vocabulary[word] {
+            return [id]
+        }
         let chars = Array(word)
         var start = 0
         var output: [Int] = []
@@ -70,9 +84,13 @@ struct WordPieceTokenizer: Sendable {
             var end = chars.count
             var found: Int?
             while start < end {
-                var piece = String(chars[start..<end])
-                if start > 0 { piece = "##" + piece }
-                if let id = vocabulary[piece] { found = id; break }
+                var piece = String(chars[start ..< end])
+                if start > 0 {
+                    piece = "##" + piece
+                }
+                if let id = vocabulary[piece] {
+                    found = id; break
+                }
                 end -= 1
             }
             guard let id = found else { return [unkID] }

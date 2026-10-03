@@ -1,0 +1,13 @@
+{
+  "labels": [
+    "Work",
+    "Social",
+    "Finance",
+    "Security",
+    "Promotional",
+    "Personal"
+  ],
+  "max_length": 256,
+  "model_name": "distilbert-base-uncased",
+  "quant_bits": 4
+}
