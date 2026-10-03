@@ -14,7 +14,9 @@ struct NotificationStats: Equatable {
 
         for notification in notifications {
             counts[notification.category, default: 0] += 1
-            if !notification.isRead { unread += 1 }
+            if !notification.isRead {
+                unread += 1
+            }
         }
 
         return NotificationStats(
@@ -204,7 +206,7 @@ struct WrappingLayout: Layout {
     var spacing: CGFloat = 8
     var lineSpacing: CGFloat = 8
 
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache _: inout ()) -> CGSize {
         let maxWidth = proposal.width ?? .infinity
         let rows = layout(subviews: subviews, maxWidth: maxWidth)
 
@@ -215,7 +217,7 @@ struct WrappingLayout: Layout {
         return CGSize(width: proposal.width ?? maxWidth, height: height)
     }
 
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CGRect, proposal _: ProposedViewSize, subviews: Subviews, cache _: inout ()) {
         let rows = layout(subviews: subviews, maxWidth: bounds.width)
         var y = bounds.minY
 
@@ -262,7 +264,9 @@ struct WrappingLayout: Layout {
             }
         }
 
-        if !current.indices.isEmpty { rows.append(current) }
+        if !current.indices.isEmpty {
+            rows.append(current)
+        }
         return rows
     }
 }

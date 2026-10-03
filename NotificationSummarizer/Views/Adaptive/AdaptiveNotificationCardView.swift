@@ -17,7 +17,9 @@ struct AdaptiveNotificationCardView: View {
     @Environment(\.currentDate) private var currentDate
     @Environment(\.currentLocale) private var currentLocale
 
-    private var tint: Color { notification.category.tint }
+    private var tint: Color {
+        notification.category.tint
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -111,7 +113,9 @@ struct NotificationDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
-    private var tint: Color { notification.category.tint }
+    private var tint: Color {
+        notification.category.tint
+    }
 
     var body: some View {
         ScrollView {

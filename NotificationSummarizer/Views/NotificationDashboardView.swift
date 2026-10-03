@@ -259,9 +259,8 @@ struct NotificationDashboardView: View {
         StatsHeaderView(stats: stats, metrics: metrics)
     }
 
-    @ViewBuilder
-    private func contentGrid<Header: View>(
-        header: @escaping () -> Header,
+    private func contentGrid(
+        header: @escaping () -> some View,
         onSelect: @escaping (SummarizedNotification) -> Void,
         selectedID: SummarizedNotification.ID?
     ) -> some View {
@@ -323,7 +322,7 @@ struct NotificationDashboardView: View {
                 "Review the new sign-in and secure your account if it wasn't you.",
                 .security,
                 -7200
-            )
+            ),
         ]
 
         for sample in samples {
@@ -378,7 +377,7 @@ struct LayoutProfileBadge: View {
     }
 }
 
-extension Optional where Wrapped == UserInterfaceSizeClass {
+extension UserInterfaceSizeClass? {
     var shortTitle: String {
         switch self {
         case .some(.compact): "compact"
@@ -437,7 +436,7 @@ private var previewDashboard: some View {
             "New sign-in detected on your account. If this wasn't you, secure your account now.",
             "Review the new sign-in and secure your account if it wasn't you.",
             .security
-        )
+        ),
     ]
 
     for (index, sample) in samples.enumerated() {

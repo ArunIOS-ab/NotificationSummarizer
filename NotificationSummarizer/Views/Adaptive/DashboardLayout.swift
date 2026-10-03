@@ -48,13 +48,19 @@ enum DashboardLayout: String, CaseIterable, Sendable {
         return vertical == .compact ? .medium : .compact
     }
 
-    var isCompact: Bool { self == .compact }
+    var isCompact: Bool {
+        self == .compact
+    }
 
     /// Only the expanded profile has enough width for sidebar + content + detail.
-    var supportsSidebarAndDetail: Bool { self == .expanded }
+    var supportsSidebarAndDetail: Bool {
+        self == .expanded
+    }
 
     /// Card grids only pay off once the available width exceeds one column.
-    var usesAdaptiveGrid: Bool { self != .compact }
+    var usesAdaptiveGrid: Bool {
+        self != .compact
+    }
 
     var title: String {
         switch self {
@@ -75,7 +81,9 @@ enum DashboardLayout: String, CaseIterable, Sendable {
 
 extension UIUserInterfaceIdiom {
     /// Idiom of the device the app is currently running on.
-    static var current: UIUserInterfaceIdiom { UIDevice.current.userInterfaceIdiom }
+    static var current: UIUserInterfaceIdiom {
+        UIDevice.current.userInterfaceIdiom
+    }
 }
 
 // MARK: - Metrics
@@ -130,11 +138,9 @@ struct DashboardMetrics: Equatable, Sendable {
     var detailPresentation: DetailPresentation
 
     static func resolve(for layout: DashboardLayout, dynamicTypeSize: DynamicTypeSize = .large) -> DashboardMetrics {
-        var metrics: DashboardMetrics
-
-        switch layout {
+        var metrics = switch layout {
         case .compact:
-            metrics = DashboardMetrics(
+            DashboardMetrics(
                 contentPadding: 16,
                 sectionSpacing: 20,
                 cardSpacing: 14,
@@ -162,7 +168,7 @@ struct DashboardMetrics: Equatable, Sendable {
             )
 
         case .medium:
-            metrics = DashboardMetrics(
+            DashboardMetrics(
                 contentPadding: 20,
                 sectionSpacing: 22,
                 cardSpacing: 16,
@@ -192,7 +198,7 @@ struct DashboardMetrics: Equatable, Sendable {
             )
 
         case .expanded:
-            metrics = DashboardMetrics(
+            DashboardMetrics(
                 contentPadding: 24,
                 sectionSpacing: 24,
                 cardSpacing: 18,

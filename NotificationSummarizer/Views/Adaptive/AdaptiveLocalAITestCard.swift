@@ -99,7 +99,7 @@ struct AdaptiveLocalAITestCard: View {
 
             let engine = LocalMLEngineActor.shared
             let category = await engine.classify(text: text)
-            let summary = (try? await engine.summarize(text: text)) ?? "Unable to summarize."
+            let summary = await (try? engine.summarize(text: text)) ?? "Unable to summarize."
             result = "\(category.rawValue) • \(summary)"
         }
     }
