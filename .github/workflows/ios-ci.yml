@@ -55,6 +55,11 @@ jobs:
       # Pinned so derived-data caching hits across runs.
       DERIVED_DATA: ${{ github.workspace }}/build/DerivedData
       RESULT_BUNDLE: ${{ github.workspace }}/build/TestResults.xcresult
+      # Snapshot image assertions are pixel-exact, so the simulator is pinned to
+      # the device/OS the baselines in NotificationSummarizerTests/__Snapshots__
+      # were recorded on. Changing these without re-recording fails every image.
+      SIMULATOR_NAME: iPhone 18
+      SIMULATOR_OS: "26.5"
 
     steps:
       # --------------------------------------------------------------------------
@@ -194,44 +199,48 @@ jobs:
         id: sim
         run: |
           set -euo pipefail
-          # Pick the newest available iPhone on the newest iOS runtime so the
-          # workflow survives runner image changes better than a hardcoded name.
+          # The destination is PINNED, not discovered.
           #
-          # Runtimes are sorted by parsed (major, minor) rather than as strings,
-          # because lexicographic order ranks "iOS-9-5" above "iOS-26-5".
-          # "SE" is excluded to avoid the smaller, differently-laid-out screen.
+          # swift-snapshot-testing image assertions are pixel-exact, so they only
+          # reproduce on the same device model and OS the baselines were recorded
+          # on. Device model is not cosmetic: it changes the safe-area insets,
+          # which shifts NavigationStack title insets and scroll content, so every
+          # image in the suite mismatches at once.
+          #
+          # The baselines in NotificationSummarizerTests/__Snapshots__ were recorded
+          # on iPhone 18 / iOS 26.5 (see the project's UserInterfaceState.xcuserstate),
+          # so that is what is pinned below.
+          #
+          # This step previously picked the lexicographically-last iPhone name,
+          # which resolved to "iPhone Air" because 'A' sorts after '1' - i.e. a
+          # different device than the one that produced the baselines. That was the
+          # same string-sort trap already fixed for runtime versions just below.
           UDID=$(xcrun simctl list devices available -j \
-            | python3 -c "
-          import json, re, sys
+            | SIM_NAME="$SIMULATOR_NAME" SIM_OS="$SIMULATOR_OS" python3 -c "
+          import json, os, sys
           data = json.load(sys.stdin)['devices']
-
-          def version(runtime_id):
-              # Anchor to '.SimRuntime.iOS-' so tvOS/watchOS/visionOS runtimes
-              # (whose ids contain 'iOS-' as a substring) are excluded, and
-              # return a tuple for every candidate so the sort never sees None.
-              m = re.search(r'\.SimRuntime\.iOS-(\d+)(?:-(\d+))?', runtime_id)
-              return (int(m.group(1)), int(m.group(2) or 0)) if m else None
-
-          runtimes = [(version(r), r) for r in data if version(r) is not None]
-          best = ''
-          for _, rt in sorted(runtimes, key=lambda pair: pair[0], reverse=True):
-              phones = [
-                  d for d in data[rt]
-                  if d['isAvailable'] and 'iPhone' in d['name'] and 'SE' not in d['name']
-              ]
-              if phones:
-                  best = sorted(phones, key=lambda d: d['name'])[-1]['udid']
-                  break
-          print(best)
-          ")
-          if [ -z "$UDID" ]; then
-            echo "::error::No available iPhone simulator found"
+          want_name = os.environ['SIM_NAME']
+          # Runtime ids spell the version as iOS-26-5, not 26.5.
+          want_os = 'iOS-' + os.environ['SIM_OS'].replace('.', '-')
+          for runtime_id, devices in data.items():
+              if not runtime_id.endswith(want_os):
+                  continue
+              for d in devices:
+                  if d['isAvailable'] and d['name'] == want_name:
+                      print(d['udid'])
+                      sys.exit(0)
+          sys.exit(1)
+          ") || {
+            echo "::error::Pinned simulator '$SIMULATOR_NAME' on iOS $SIMULATOR_OS is not available."
+            echo "Image baselines only reproduce on the exact device/OS that recorded them."
+            echo "Either re-record the baselines on that simulator, or update SIMULATOR_NAME"
+            echo "/ SIMULATOR_OS at the top of this workflow to match where they were recorded."
+            echo "Available devices:"
             xcrun simctl list devices available
             exit 1
-          fi
+          }
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
-          echo "Using simulator $UDID"
-          xcrun simctl list devices available | grep -F "$UDID" || true
+          echo "Using $SIMULATOR_NAME on iOS $SIMULATOR_OS ($UDID)"
 
       - name: Verify snapshot reference images are committed
         # Snapshot baselines live in NotificationSummarizerTests/__Snapshots__ and
