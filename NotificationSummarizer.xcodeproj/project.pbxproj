@@ -24,6 +24,10 @@
 		A10000000000000000000015 /* SnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000016 /* SnapshotTests.swift */; };
 		A10000000000000000000016 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = R10000000000000000000002 /* SnapshotTesting */; };
 		A10000000000000000000017 /* DashboardComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017 /* DashboardComponents.swift */; };
+		A10000000000000000000020 /* DashboardLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000020 /* DashboardLayout.swift */; };
+		A10000000000000000000021 /* AdaptiveDashboardComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000021 /* AdaptiveDashboardComponents.swift */; };
+		A10000000000000000000022 /* AdaptiveLocalAITestCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000022 /* AdaptiveLocalAITestCard.swift */; };
+		A10000000000000000000023 /* AdaptiveNotificationCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000023 /* AdaptiveNotificationCardView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,6 +60,10 @@
 		B10000000000000000000015 /* NotificationSummarizerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NotificationSummarizerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		B10000000000000000000016 /* SnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotTests.swift; sourceTree = "<group>"; };
 		B10000000000000000000017 /* DashboardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardComponents.swift; sourceTree = "<group>"; };
+		B10000000000000000000020 /* DashboardLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardLayout.swift; sourceTree = "<group>"; };
+		B10000000000000000000021 /* AdaptiveDashboardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveDashboardComponents.swift; sourceTree = "<group>"; };
+		B10000000000000000000022 /* AdaptiveLocalAITestCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveLocalAITestCard.swift; sourceTree = "<group>"; };
+		B10000000000000000000023 /* AdaptiveNotificationCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveNotificationCardView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -140,9 +148,21 @@
 			isa = PBXGroup;
 			children = (
 				B10000000000000000000007 /* NotificationDashboardView.swift */,
+				D1000000000000000000000C /* Adaptive */,
 				B10000000000000000000017 /* DashboardComponents.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		D1000000000000000000000C /* Adaptive */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000020 /* DashboardLayout.swift */,
+				B10000000000000000000021 /* AdaptiveDashboardComponents.swift */,
+				B10000000000000000000022 /* AdaptiveLocalAITestCard.swift */,
+				B10000000000000000000023 /* AdaptiveNotificationCardView.swift */,
+			);
+			path = Adaptive;
 			sourceTree = "<group>";
 		};
 		D1000000000000000000000A /* Resources */ = {
@@ -289,6 +309,10 @@
 				A10000000000000000000006 /* SummarizeNotificationsIntent.swift in Sources */,
 				A10000000000000000000007 /* NotificationDashboardView.swift in Sources */,
 				A10000000000000000000017 /* DashboardComponents.swift in Sources */,
+				A10000000000000000000020 /* DashboardLayout.swift in Sources */,
+				A10000000000000000000021 /* AdaptiveDashboardComponents.swift in Sources */,
+				A10000000000000000000022 /* AdaptiveLocalAITestCard.swift in Sources */,
+				A10000000000000000000023 /* AdaptiveNotificationCardView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -9,6 +9,26 @@
 # version-dependent formatting and warns.
 --swiftversion 5.9
 
+# --- Paths to never lint --------------------------------------------------
+#
+# CI runs `swiftformat --lint .` from the repo root, so SwiftFormat walks every
+# subdirectory. CI also points DERIVED_DATA at ${{ github.workspace }}/build/DerivedData,
+# which places SwiftPM checkouts *inside* the repo:
+#
+#   build/DerivedData/SourcePackages/checkouts/{swift-syntax,...}
+#
+# Those are third-party sources that cannot follow this repo's pinned rule set.
+# Without these excludes the lint step reported violations inside swift-syntax's
+# own test fixtures (ExpressionTests.swift), exited 70, and failed the build for
+# reasons unrelated to project code. It only surfaces once a build has populated
+# DerivedData, which is why it looks intermittent on a clean checkout.
+#
+# .gitignore excludes build/ as well, but SwiftFormat does not read .gitignore.
+--exclude build,DerivedData,SourcePackages,checkouts,.build
+
+# Model and tokenizer artifacts are data, not Swift source.
+--exclude NotificationClassifier.mlpackage,NotificationClassifierAssets
+
 # --- Rules enforced by CI -------------------------------------------------
 # These are the rules that produced lint failures. They are listed explicitly so
 # the contract is visible in the repo rather than implicit in a default set.
