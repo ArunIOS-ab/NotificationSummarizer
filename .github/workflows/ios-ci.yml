@@ -62,6 +62,11 @@ jobs:
       # --------------------------------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # The Core ML package is stored in Git LFS (see .gitattributes). Without
+          # this, `model.mlmodel` and `weight.bin` are left as ~130-byte pointer
+          # files and the Core ML compiler fails the build before any test runs.
+          lfs: true
 
       # --------------------------------------------------------------------------
       # Step 2 - Bitrise equivalent: cache-pull / cache-push
@@ -111,7 +116,8 @@ jobs:
       #   formatted result in their branch instead of a red build.
       #
       #   The fix step is gated on `failure()`, which is what allows it to run
-      #   even though the lint step already failed the job.
+      #   even though the lint step already failed the job. It also has to run
+      #   `swiftformat .` itself -- the lint run only reports, it never rewrites.
       # --------------------------------------------------------------------------
       - name: Report SwiftFormat version
         # The runner image ships SwiftFormat; `brew install swiftformat` would
@@ -126,7 +132,18 @@ jobs:
         # on developer machines too.
         run: swiftformat --lint .
 
-      - name: Auto-fix formatting and commit back (PRs only)
+      - name: Auto-fix formatting (PRs only)
+        # `--lint` only *reports* violations; it leaves the worktree untouched.
+        # Without this step the auto-commit below would have nothing to commit
+        # and the job would never actually get formatted code back to the branch.
+        if: >-
+          failure() &&
+          steps.swiftformat.outcome == 'failure' &&
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        run: swiftformat .
+
+      - name: Commit formatting fixes (PRs only)
         if: >-
           failure() &&
           steps.swiftformat.outcome == 'failure' &&
@@ -139,9 +156,27 @@ jobs:
           commit_author: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
           file_pattern: '.*\.swift$'
 
+      - name: Re-lint after auto-fix (PRs only)
+        # The commit above may not have fixed everything (or `file_pattern` may
+        # have excluded a file SwiftFormat rewrote), so the decision to fail has
+        # to be based on the post-fix state, not the original lint outcome.
+        id: swiftformat_recheck
+        if: >-
+          failure() &&
+          steps.swiftformat.outcome == 'failure' &&
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        run: swiftformat --lint .
+
       - name: Fail build if formatting is still invalid
-        # Non-PR pushes, and fork PRs where we cannot push, must hard-fail.
-        if: steps.swiftformat.outcome == 'failure'
+        # `always()` because the job is already marked failed by the lint step,
+        # which would otherwise make this step skip.
+        # For non-PR pushes and fork PRs the re-lint never runs, so its outcome
+        # is `skipped` and the original violations correctly hard-fail here.
+        if: >-
+          always() &&
+          steps.swiftformat.outcome == 'failure' &&
+          steps.swiftformat_recheck.outcome != 'success'
         run: |
           echo "::error::SwiftFormat reported formatting violations."
           echo "Run 'swiftformat .' locally and commit the result."

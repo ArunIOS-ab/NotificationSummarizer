@@ -20,7 +20,7 @@ struct NotificationDashboardView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     CategoryChipRow(selection: $selectedCategory)
                     LocalAITestCard(
-                        text: testText,
+                        text: $testText,
                         isRunning: isRunning,
                         result: testResult,
                         onRun: runLocalSummary

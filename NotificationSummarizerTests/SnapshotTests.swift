@@ -101,7 +101,10 @@ final class LocalAITestCardSnapshotTests: XCTestCase {
         named name: String,
         colorScheme: ColorScheme = .light
     ) {
-        let view = LocalAITestCard(text: text, isRunning: isRunning, result: result, onRun: {})
+        // `.constant` is correct here: the card takes a binding so the dashboard's
+        // field is editable, but a snapshot renders one fixed state and never
+        // types into it.
+        let view = LocalAITestCard(text: .constant(text), isRunning: isRunning, result: result, onRun: {})
             .frame(width: 390)
             .environment(\.currentDate, referenceNow)
             .environment(\.currentLocale, referenceLocale)
@@ -303,7 +306,7 @@ final class NotificationDashboardViewSnapshotTests: XCTestCase {
                 VStack(alignment: .leading, spacing: 20) {
                     CategoryChipRow(selection: .constant(nil))
                     LocalAITestCard(
-                        text: "Your bank account ending in 4092 was charged $42.50 at Starbucks.",
+                        text: .constant("Your bank account ending in 4092 was charged $42.50 at Starbucks."),
                         isRunning: false,
                         result: nil,
                         onRun: {}

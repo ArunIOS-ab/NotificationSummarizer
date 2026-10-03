@@ -98,8 +98,12 @@ struct CategoryChipRow: View {
 /// supplied value. The dashboard drives it from `@State`; snapshot tests pass
 /// literal values, which is what makes the loading / success / error states
 /// reachable without waiting on a real Core ML inference.
+///
+/// `text` is a binding because the field is user editable and the Run button
+/// classifies whatever the user typed. A plain `let` here would need
+/// `.constant(text)` in the `TextEditor`, which silently discards every keystroke.
 struct LocalAITestCard: View {
-    let text: String
+    @Binding var text: String
     let isRunning: Bool
     let result: String?
     let onRun: () -> Void
@@ -112,7 +116,7 @@ struct LocalAITestCard: View {
         VStack(alignment: .leading, spacing: 12) {
             Label("Local AI test", systemImage: "cpu")
                 .font(.headline)
-            TextEditor(text: .constant(text))
+            TextEditor(text: $text)
                 .frame(minHeight: 90)
                 .padding(8)
                 .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
