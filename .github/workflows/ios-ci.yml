@@ -205,6 +205,21 @@ jobs:
           name: ${{ env.SIMULATOR_NAME }}
           os: ${{ env.SIMULATOR_OS }}
 
+      - name: Pin simulator locale
+        # The committed baselines are pixel-exact, so the *process* locale has to
+        # match the one they were recorded under. `EnvironmentValues.currentLocale`
+        # in SnapshotTests.swift only pins the RelativeDateTimeFormatter string; it
+        # does not change the process locale, which drives font selection and
+        # layout metrics. Unpinned, the chip row rendered 1170x118 on an en_IN
+        # machine and 1170x114 on the en_US runner, failing all 29 baselines.
+        run: |
+          set -euo pipefail
+          xcrun simctl spawn "${{ steps.sim.outputs.udid }}" \
+            defaults write -g AppleLocale -string en_US
+          xcrun simctl spawn "${{ steps.sim.outputs.udid }}" \
+            defaults write -g AppleLanguages -array en-US
+          echo "Pinned simulator locale to en_US"
+
       - name: Verify snapshot reference images are committed
         # Snapshot baselines live in NotificationSummarizerTests/__Snapshots__ and
         # are the actual assertions. If they are missing, `record: .missing`
