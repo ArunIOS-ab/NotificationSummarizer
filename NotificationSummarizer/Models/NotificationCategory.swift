@@ -8,7 +8,9 @@ enum NotificationCategory: String, CaseIterable, Codable, Identifiable, Sendable
     case promotional = "Promotional"
     case personal = "Personal"
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     var systemImage: String {
         switch self {

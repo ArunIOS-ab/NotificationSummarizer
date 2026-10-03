@@ -26,7 +26,7 @@ struct SummarizeNotificationsIntent: AppIntent {
         var briefs: [String] = []
         for record in records {
             let category = await engine.classify(text: record.originalText)
-            let summary = (try? await engine.summarize(text: record.originalText)) ?? record.summary
+            let summary = await (try? engine.summarize(text: record.originalText)) ?? record.summary
             briefs.append("\(category.rawValue): \(summary)")
         }
 

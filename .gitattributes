@@ -1,2 +1,25 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# --- Git LFS: Core ML artifacts ---
+#
+# .mlpackage is a DIRECTORY, not a single file, so LFS cannot track the
+# package itself. Each binary file inside it has to be matched individually.
+#
+# weight.bin holds the quantized weights and is the bulk of the package (~36 MB);
+# model.mlmodel holds the MIL program spec. Both are binary, so line-ending
+# normalization is disabled with -text.
+#
+# Requires: brew install git-lfs && git lfs install
+NotificationClassifier.mlpackage/Data/com.apple.CoreML/weights/weight.bin filter=lfs diff=lfs merge=lfs -text
+NotificationClassifier.mlpackage/Data/com.apple.CoreML/model.mlmodel filter=lfs diff=lfs merge=lfs -text
+
+# Catch any future .mlpackage regardless of its internal layout.
+*.mlmodel filter=lfs diff=lfs merge=lfs -text
+
+# Manifest.json stays in regular git: it is a small, human-readable JSON index
+# and is useful to diff in code review.
+
+# Tokenizer assets are left as normal git files: they are text/JSON under 1 MB.
+# If tokenizer.json ever grows past a few MB, move it to LFS too:
+# NotificationClassifierAssets/tokenizer/tokenizer.json filter=lfs diff=lfs merge=lfs -text

@@ -1,0 +1,292 @@
+name: iOS CI
+
+# ==============================================================================
+# Bitrise equivalent: trigger_map
+#   push + pull_request, gated to the main and develop branches.
+#   `branches` applies to push; for pull_request it filters the *base* branch,
+#   which is the behaviour you want (feature -> develop runs, feature -> random fork branch does not).
+# ==============================================================================
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+# ==============================================================================
+# Bitrise equivalent: workflow-level permissions
+#   `contents: write` is required so the SwiftFormat auto-fix job can push the
+#   formatting commit back to the PR branch.
+#
+#   NOTE: pulls from forks receive a read-only GITHUB_TOKEN by design, so the
+#   auto-fix is skipped there (the `format-fix` step checks this explicitly).
+#   Everything else runs with read-only access.
+# ==============================================================================
+permissions:
+  contents: write
+
+# Cancel superseded runs on the same ref instead of queueing them.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios-ci:
+    # Bitrise equivalent: machine / stack selection
+    #
+    # macos-14 (Sonoma) is deprecated and becomes fully unsupported on
+    # 2026-11-02, so it cannot be used here.
+    #
+    # The floor is set by the SwiftPM dependencies, not by this project:
+    # swift-custom-dump and xctest-dynamic-overlay declare `swift-tools-version:6.4`
+    # and swift-snapshot-testing declares 6.0. Xcode 15.x ships Swift 5.10, which
+    # cannot even *parse* a 6.x manifest, so package resolution fails before the
+    # build starts. Those manifests need Swift 6.2+, i.e. Xcode 26.x.
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    defaults:
+      run:
+        working-directory: .
+
+    env:
+      # Centralised so the project/scheme are defined in exactly one place.
+      PROJECT: NotificationSummarizer.xcodeproj
+      SCHEME: NotificationSummarizer
+      # Pinned so derived-data caching hits across runs.
+      DERIVED_DATA: ${{ github.workspace }}/build/DerivedData
+      RESULT_BUNDLE: ${{ github.workspace }}/build/TestResults.xcresult
+      # Snapshot image assertions are pixel-exact, so the simulator is pinned to
+      # the exact device/OS the committed baselines were recorded against.
+      # Verified locally: with iPhone 17 Pro / iOS 26.5 / Xcode 26.6 the suite
+      # is 66/66 green with zero pixel differences.
+      SIMULATOR_NAME: iPhone 17 Pro
+      SIMULATOR_OS: "26.5"
+
+    steps:
+      # --------------------------------------------------------------------------
+      # Step 1 - Bitrise equivalent: git-clone
+      # --------------------------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # The Core ML package is stored in Git LFS (see .gitattributes). Without
+          # this, `model.mlmodel` and `weight.bin` are left as ~130-byte pointer
+          # files and the Core ML compiler fails the build before any test runs.
+          lfs: true
+
+      # --------------------------------------------------------------------------
+      # Step 2 - Bitrise equivalent: cache-pull / cache-push
+      #   Bitrise uses its own hosted cache with explicit pull at start and push
+      #   at end. GitHub Actions has no push/pull step, so we key a cache that is
+      #   saved on first run and restored automatically on subsequent ones.
+      #
+      #   Caches:
+      #     - DerivedData  : the expensive part (recompiles, module cache)
+      #     - SourcePackages : SwiftPM checkouts, in case SPM deps are added later
+      #   Restore keys let us fall back to the most recent cache from the branch.
+      # --------------------------------------------------------------------------
+      - name: Select Xcode version
+        run: |
+          # 26.x is required by the Swift 6.2+ SwiftPM dependencies (see runs-on above).
+          # 26.6 is also the image default, so this is belt-and-braces; the assertion
+          # below turns a future image change into a clear failure instead of a
+          # confusing "unsupported tools version" manifest error.
+          XCODE_APP="/Applications/Xcode_26.6.app"
+          if [ ! -d "$XCODE_APP" ]; then
+            echo "::error::$XCODE_APP not found on this runner image."
+            ls -d /Applications/Xcode*.app
+            exit 1
+          fi
+          sudo xcode-select -switch "$XCODE_APP"
+          xcodebuild -version
+          swift --version
+          # Fail fast if the toolchain is too old for the dependencies.
+          swift --version | grep -qE 'Swift version 6\.[2-9]|Swift version 7\.'
+
+      - name: Cache derived data and SwiftPM dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.DERIVED_DATA }}
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/Developer/Xcode/DerivedData/ModuleCache.noindex
+          key: ${{ runner.os }}-xcode-26.6-${{ hashFiles('**/*.xcodeproj/project.pbxproj') }}-${{ hashFiles('**/*.swift') }}
+          restore-keys: |
+            ${{ runner.os }}-xcode-26.6-${{ hashFiles('**/*.xcodeproj/project.pbxproj') }}-
+            ${{ runner.os }}-xcode-26.6-
+
+      # --------------------------------------------------------------------------
+      # Step 3 - Bitrise equivalent: custom script running swiftformat --lint
+      #   On a pull_request, a lint failure triggers an auto-fix + commit
+      #   (stefanzweifel/git-auto-commit-action@v5) so the author gets the
+      #   formatted result in their branch instead of a red build.
+      #
+      #   The fix step is gated on `failure()`, which is what allows it to run
+      #   even though the lint step already failed the job. It also has to run
+      #   `swiftformat .` itself -- the lint run only reports, it never rewrites.
+      # --------------------------------------------------------------------------
+      - name: Report SwiftFormat version
+        # The runner image ships SwiftFormat; `brew install swiftformat` would
+        # silently upgrade to whatever is newest, so the lint result would depend
+        # on the image date instead of the repo. Rule changes between versions are
+        # exactly what turns CI red with no source change.
+        run: swiftformat --version
+
+      - name: Lint formatting (SwiftFormat --lint)
+        id: swiftformat
+        # Rules are pinned in .swiftformat (committed), so this is reproducible
+        # on developer machines too.
+        run: swiftformat --lint .
+
+      - name: Auto-fix formatting (PRs only)
+        # `--lint` only *reports* violations; it leaves the worktree untouched.
+        # Without this step the auto-commit below would have nothing to commit
+        # and the job would never actually get formatted code back to the branch.
+        if: >-
+          failure() &&
+          steps.swiftformat.outcome == 'failure' &&
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        run: swiftformat .
+
+      - name: Commit formatting fixes (PRs only)
+        if: >-
+          failure() &&
+          steps.swiftformat.outcome == 'failure' &&
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: '[ci] Apply SwiftFormat formatting'
+          commit_user: 'github-actions[bot]'
+          commit_author: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
+          file_pattern: '.*\.swift$'
+
+      - name: Re-lint after auto-fix (PRs only)
+        # The commit above may not have fixed everything (or `file_pattern` may
+        # have excluded a file SwiftFormat rewrote), so the decision to fail has
+        # to be based on the post-fix state, not the original lint outcome.
+        id: swiftformat_recheck
+        if: >-
+          failure() &&
+          steps.swiftformat.outcome == 'failure' &&
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        run: swiftformat --lint .
+
+      - name: Fail build if formatting is still invalid
+        # `always()` because the job is already marked failed by the lint step,
+        # which would otherwise make this step skip.
+        # For non-PR pushes and fork PRs the re-lint never runs, so its outcome
+        # is `skipped` and the original violations correctly hard-fail here.
+        if: >-
+          always() &&
+          steps.swiftformat.outcome == 'failure' &&
+          steps.swiftformat_recheck.outcome != 'success'
+        run: |
+          echo "::error::SwiftFormat reported formatting violations."
+          echo "Run 'swiftformat .' locally and commit the result."
+          exit 1
+
+      # --------------------------------------------------------------------------
+      # Step 4 - Bitrise equivalent: xcode-test
+      #   Runs unit + UI tests on an iOS simulator. This project ships the
+      #   NotificationSummarizerTests unit-test bundle, hosted by the app target.
+      #
+      #   `-resultBundlePath` is required for the artifact upload in step 5.
+      #   `CODE_SIGNING_ALLOWED=NO` avoids signing issues for simulator builds.
+      # --------------------------------------------------------------------------
+      - name: Resolve simulator destination
+        id: sim
+        # Resolution lives in a composite action so the pin has exactly one
+        # definition and cannot drift.
+        uses: ./.github/actions/pinned-simulator
+        with:
+          name: ${{ env.SIMULATOR_NAME }}
+          os: ${{ env.SIMULATOR_OS }}
+
+      - name: Pin simulator locale
+        # The committed baselines are pixel-exact, so the *process* locale has to
+        # match the one they were recorded under. `EnvironmentValues.currentLocale`
+        # in SnapshotTests.swift only pins the RelativeDateTimeFormatter string; it
+        # does not change the process locale, which drives font selection and
+        # layout metrics. Unpinned, the chip row rendered 1170x118 on an en_IN
+        # machine and 1170x114 on the en_US runner, failing all 29 baselines.
+        run: |
+          set -euo pipefail
+          UDID="${{ steps.sim.outputs.udid }}"
+          # `simctl spawn` needs a booted device, and the runner ships these
+          # simulators in the Shutdown state, so boot first and wait for the
+          # device to finish booting. Without this the step fails with
+          # "Process spawn via launchd failed because device is not booted".
+          xcrun simctl boot "$UDID" 2>/dev/null || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl spawn "$UDID" defaults write -g AppleLocale -string en_US
+          xcrun simctl spawn "$UDID" defaults write -g AppleLanguages -array en-US
+          xcrun simctl spawn "$UDID" defaults read -g AppleLocale
+          # Shut down again so xcodebuild owns the device lifecycle, matching the
+          # state the test run would otherwise start from.
+          xcrun simctl shutdown "$UDID"
+          echo "Pinned simulator locale to en_US"
+
+      - name: Verify snapshot reference images are committed
+        # Snapshot baselines live in NotificationSummarizerTests/__Snapshots__ and
+        # are the actual assertions. If they are missing, `record: .missing`
+        # would silently regenerate them and the run would pass regardless of
+        # whether the UI changed. Fail loudly instead.
+        run: |
+          if [ -z "$(find NotificationSummarizerTests/__Snapshots__ -name '*.png' 2>/dev/null | head -1)" ]; then
+            echo "::error::No snapshot reference images found."
+            echo "Run the snapshot tests locally (record mode) and commit"
+            echo "NotificationSummarizerTests/__Snapshots__."
+            exit 1
+          fi
+
+      - name: Verify log formatter is available
+        # xcpretty is unmaintained and has been removed from Homebrew, so
+        # `brew install xcpretty` now fails and kills the job. xcbeautify is the
+        # maintained successor and is preinstalled on the runner image, so there
+        # is nothing to install. This step only asserts it exists so a future
+        # image change fails here with a clear message instead of mid-pipeline.
+        run: |
+          if ! command -v xcbeautify >/dev/null 2>&1; then
+            echo "::error::xcbeautify not found on this runner image."
+            echo "It ships preinstalled with macos-26; drop the formatter pipe if removed."
+            exit 1
+          fi
+          xcbeautify --version
+
+      - name: Run unit and UI tests (xcodebuild test)
+        run: |
+          set -o pipefail
+          mkdir -p build
+          xcodebuild test \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -destination "platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}" \
+            -derivedDataPath "$DERIVED_DATA" \
+            -resultBundlePath "$RESULT_BUNDLE" \
+            -enableCodeCoverage YES \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify
+        # CI compares against committed baselines; never rewrite them here.
+        env:
+          SNAPSHOT_TESTING_RECORD: never
+
+      # --------------------------------------------------------------------------
+      # Step 5 - Bitrise equivalent: deploy / upload artifacts step
+      #   Bitrise pushes logs and test results as build artifacts automatically.
+      #   GitHub only uploads when a step explicitly does it, so we always attach
+      #   the xcresult bundle and always keep logs, but tolerate a missing bundle
+      #   when the failure happened before tests started.
+      # --------------------------------------------------------------------------
+      - name: Upload test results and build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_id }}
+          path: |
+            ${{ env.RESULT_BUNDLE }}
+            ${{ env.DERIVED_DATA }}/Logs
+          retention-days: 14
+          if-no-files-found: warn
