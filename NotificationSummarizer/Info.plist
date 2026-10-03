@@ -12,6 +12,26 @@
     <string>1</string>
     <key>NSSiriUsageDescription</key>
     <string>NotificationSummarizer uses Siri and App Intents to summarize your locally stored notifications on-device.</string>
+    <!-- An empty launch screen dictionary opts the app into full screen rendering.
+         Without it iOS falls back to a letterboxed legacy viewport, which reports the
+         wrong size classes on both iPhone and iPad. -->
+    <key>UILaunchScreen</key>
+    <dict/>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <!-- iPad also supports upside down and, on iOS 17+, the four independent
+         multitasking orientations required by Stage Manager and Split View. -->
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
     <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>

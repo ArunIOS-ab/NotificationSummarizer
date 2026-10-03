@@ -13,6 +13,10 @@
 		A10000000000000000000005 /* WordPieceTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* WordPieceTokenizer.swift */; };
 		A10000000000000000000006 /* SummarizeNotificationsIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000006 /* SummarizeNotificationsIntent.swift */; };
 		A10000000000000000000007 /* NotificationDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000007 /* NotificationDashboardView.swift */; };
+		A10000000000000000000008 /* DashboardLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000010 /* DashboardLayout.swift */; };
+		A10000000000000000000009 /* DashboardComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000011 /* DashboardComponents.swift */; };
+		A1000000000000000000000A /* LocalAITestCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000012 /* LocalAITestCard.swift */; };
+		A1000000000000000000000B /* NotificationCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* NotificationCardView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -25,6 +29,10 @@
 		B10000000000000000000007 /* NotificationDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationDashboardView.swift; sourceTree = "<group>"; };
 		B10000000000000000000008 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B10000000000000000000009 /* NotificationSummarizer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NotificationSummarizer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000000000000000000010 /* DashboardLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardLayout.swift; sourceTree = "<group>"; };
+		B10000000000000000000011 /* DashboardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardComponents.swift; sourceTree = "<group>"; };
+		B10000000000000000000012 /* LocalAITestCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAITestCard.swift; sourceTree = "<group>"; };
+		B10000000000000000000013 /* NotificationCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationCardView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -38,7 +46,8 @@
 		D10000000000000000000004 /* Models */ = {isa = PBXGroup; children = (B10000000000000000000002,B10000000000000000000003,); path = Models; sourceTree = "<group>"; };
 		D10000000000000000000005 /* ML */ = {isa = PBXGroup; children = (B10000000000000000000004,B10000000000000000000005,); path = ML; sourceTree = "<group>"; };
 		D10000000000000000000006 /* Intents */ = {isa = PBXGroup; children = (B10000000000000000000006,); path = Intents; sourceTree = "<group>"; };
-		D10000000000000000000007 /* Views */ = {isa = PBXGroup; children = (B10000000000000000000007,); path = Views; sourceTree = "<group>"; };
+		D10000000000000000000007 /* Views */ = {isa = PBXGroup; children = (D10000000000000000000009,B10000000000000000000007,); path = Views; sourceTree = "<group>"; };
+		D10000000000000000000009 /* Adaptive */ = {isa = PBXGroup; children = (B10000000000000000000010,B10000000000000000000011,B10000000000000000000012,B10000000000000000000013,); path = Adaptive; sourceTree = "<group>"; };
 		D10000000000000000000008 /* App */ = {isa = PBXGroup; children = (B10000000000000000000001,); path = ""; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
@@ -55,7 +64,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		C10000000000000000000002 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001,A10000000000000000000002,A10000000000000000000003,A10000000000000000000004,A10000000000000000000005,A10000000000000000000006,A10000000000000000000007,); runOnlyForDeploymentPostprocessing = 0; };
+		C10000000000000000000002 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001,A10000000000000000000002,A10000000000000000000003,A10000000000000000000004,A10000000000000000000005,A10000000000000000000006,A10000000000000000000007,A10000000000000000000008,A10000000000000000000009,A1000000000000000000000A,A1000000000000000000000B,); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
