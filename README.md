@@ -1,10 +1,16 @@
-# NotificationSummarizer — iOS 17+
+# NotificationSummarizer — iOS 17+ / watchOS 10+
 
 This is a native SwiftUI/SwiftData/App Intents/Core ML project. It is intentionally runnable **without** the Core ML model: until `NotificationClassifier.mlpackage` and its matching `vocab.txt` are added, the app uses the local deterministic fallback classifier/summarizer.
 
+Ships two apps in one project, sharing the same on-device engine: an iOS app and a
+watchOS app.
+
 ## Screenshots
 
-Every notification is classified into one of six categories, summarized on-device, and shown in an adaptive dashboard that re-flows from a single-column phone list to an iPad sidebar/grid/detail layout.
+Every notification is classified into one of six categories and summarised on-device. On
+iOS that lands in an adaptive dashboard that re-flows from a single-column phone list to an
+iPad sidebar/grid/detail layout; on Apple Watch it becomes a glanceable feed, a dictate-to-
+summarise capture screen, and a per-category overview.
 
 ### iPhone
 
@@ -76,6 +82,21 @@ There is a native watchOS app in the same project (`NotificationSummarizerWatch`
 10+) running the same on-device engine: a feed with category filters, a capture screen
 that dictates or types a notification and summarises it on the wrist, and an overview with
 per-category counts.
+
+<table>
+  <tr>
+    <td width="33%"><img src="docs/screenshots-watch/feed.png" alt="Watch feed with category filter and notification rows" /></td>
+    <td width="33%"><img src="docs/screenshots-watch/capture.png" alt="Watch capture screen with text field and summarise button" /></td>
+    <td width="33%"><img src="docs/screenshots-watch/overview.png" alt="Watch overview with totals and category breakdown" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Feed &mdash; filter, swipe to mark read or delete</sub></td>
+    <td align="center"><sub>Capture &mdash; dictate or type, summarised on device</sub></td>
+    <td align="center"><sub>Overview &mdash; totals and per-category counts</sub></td>
+  </tr>
+</table>
+
+Captured on an Apple Watch Series 11 (46mm) simulator, watchOS 26.5.
 
 Select the `NotificationSummarizerWatch` scheme to run it. See [docs/watchos.md](docs/watchos.md)
 for the target layout, shared code, installing on hardware, and what is not in there yet.
