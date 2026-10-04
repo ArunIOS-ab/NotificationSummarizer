@@ -70,6 +70,16 @@ The app dynamically loads the compiled Core ML model. No generated model Swift c
 - Rule-based local fallback when the model/tokenizer is unavailable.
 - Deterministic 20-word maximum summary fallback.
 
+## watchOS
+
+There is a native watchOS app in the same project (`NotificationSummarizerWatch`, watchOS
+10+) running the same on-device engine: a feed with category filters, a capture screen
+that dictates or types a notification and summarises it on the wrist, and an overview with
+per-category counts.
+
+Select the `NotificationSummarizerWatch` scheme to run it. See [docs/watchos.md](docs/watchos.md)
+for the target layout, shared code, installing on hardware, and what is not in there yet.
+
 ## Important iOS limitation
 
 A normal third-party app cannot read arbitrary notifications belonging to other apps. To process notifications from your own app, use a Notification Service Extension and an App Group for shared persistence.

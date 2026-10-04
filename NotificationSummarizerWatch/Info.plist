@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Summarizer</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<!-- Marks the bundle as a single-target watchOS app (Xcode 14+ merged the old
+	     WatchKit App + WatchKit App Extension pair into one target). Without this key
+	     installation fails with:
+	     'A value for the key "WKApplication", or "WKWatchKitApp" if your project has a
+	     WatchKit App Extension target, is required in "...app"'. There is no extension
+	     target here, so WKApplication is the correct key and WKWatchKitApp is not used. -->
+	<key>WKApplication</key>
+	<true/>
+	<!-- Lets the system pair this watch app with the phone app when the watch target
+	     is embedded in the iOS app's Watch Content directory. -->
+	<key>WKCompanionAppBundleIdentifier</key>
+	<string>com.example.NotificationSummarizer</string>
+</dict>
+</plist>
