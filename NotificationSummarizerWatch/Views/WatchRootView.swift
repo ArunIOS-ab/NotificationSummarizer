@@ -9,6 +9,12 @@ import SwiftUI
 ///
 /// `.verticalPage` also gives the Digital Crown something to page through, which is
 /// the gesture people reach for first on this screen size.
+///
+/// **Constraint this imposes:** no page may attach a `.toolbar`. On watchOS a
+/// `ToolbarItem` inside a vertical-page `TabView` collapses that page to zero size --
+/// the app launches, the page dots appear, and the screen stays black. Every action
+/// that would naturally live in a toolbar (the feed's category filter, capture's
+/// template picker, detail's read/delete) is therefore a control in the page content.
 struct WatchRootView: View {
     @State private var selection: WatchRootPage = .feed
 

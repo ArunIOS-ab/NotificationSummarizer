@@ -22,6 +22,8 @@ struct WatchQuickCaptureView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     inputField
 
+                    templatesButton
+
                     runButton
 
                     if isRunning {
@@ -36,16 +38,9 @@ struct WatchQuickCaptureView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .navigationTitle("Capture")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showsTemplates = true
-                    } label: {
-                        Image(systemName: "text.quote")
-                    }
-                    .accessibilityLabel("Use a sample notification")
-                }
-            }
+            // No toolbar here: a `ToolbarItem` inside a page of the root's
+            // `.verticalPage` `TabView` collapses that page to a black screen on
+            // watchOS. The template picker is a content button instead.
             .confirmationDialog("Sample notifications", isPresented: $showsTemplates, titleVisibility: .visible) {
                 ForEach(WatchSampleData.captureTemplates, id: \.self) { template in
                     Button(shortLabel(for: template)) {
@@ -66,6 +61,16 @@ struct WatchQuickCaptureView: View {
             .font(.footnote)
             .lineLimit(3 ... 8)
             .onSubmit { run() }
+    }
+
+    private var templatesButton: some View {
+        Button {
+            showsTemplates = true
+        } label: {
+            Label("Use a sample", systemImage: "text.quote")
+                .font(.caption2)
+        }
+        .buttonStyle(.bordered)
     }
 
     private var runButton: some View {

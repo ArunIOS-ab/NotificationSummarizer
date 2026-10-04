@@ -38,33 +38,35 @@ struct WatchDetailView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(.tint)
 
-                // Delete lives in the content rather than a bottom toolbar item:
-                // `ToolbarItemPlacement.bottomBar` is not guaranteed to resolve on
-                // watchOS, and a mis-resolving placement would silently drop the
-                // destructive action instead of failing to compile.
-                Button(role: .destructive) {
-                    modelContext.delete(notification)
-                    try? modelContext.save()
-                    dismiss()
-                } label: {
-                    Label("Delete", systemImage: "trash")
+                HStack(spacing: 8) {
+                    // Read state and delete both live in the content, not a toolbar:
+                    // the detail view is pushed inside a page of the root's
+                    // `.verticalPage` `TabView`, and a `ToolbarItem` there collapses
+                    // the page to a black screen on watchOS.
+                    Button {
+                        notification.isRead.toggle()
+                        try? modelContext.save()
+                    } label: {
+                        Label(
+                            notification.isRead ? "Mark unread" : "Mark read",
+                            systemImage: notification.isRead ? "circlebadge" : "checkmark.circle"
+                        )
+                    }
+                    .font(.caption2)
+
+                    Button(role: .destructive) {
+                        modelContext.delete(notification)
+                        try? modelContext.save()
+                        dismiss()
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .font(.caption2)
                 }
-                .font(.caption2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .navigationTitle(notification.category.rawValue)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    notification.isRead.toggle()
-                    try? modelContext.save()
-                } label: {
-                    Image(systemName: notification.isRead ? "circlebadge" : "checkmark.circle")
-                }
-                .accessibilityLabel(notification.isRead ? "Mark unread" : "Mark read")
-            }
-        }
     }
 
     private var header: some View {

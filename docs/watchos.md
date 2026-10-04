@@ -59,18 +59,54 @@ NotificationSummarizerWatch/
 
 ## Screens
 
-**Feed** — every summarised notification, newest first, filterable by category from a
-confirmation dialog (`Menu` does not exist on watchOS, so the filter is a dialog rather
-than a popover). Swipe left to mark read/unread, swipe right to delete. The toolbar
-button shows the active filter's category glyph and tint.
+**Feed** — every summarised notification, newest first. Swipe up on a row to mark
+read/unread, swipe down to delete. The first row is the category filter: tap it to pick
+a category in a confirmation dialog (`Menu` does not exist on watchOS, so a dialog is
+the one menu-like pattern available).
 
 **Capture** — the capability the phone app cannot offer. Dictate or type a notification
 into a multiline field, tap **Summarise**, and the watch classifies and summarises it
 on device, showing the category, the summary and how long it took. **Save to feed**
-stores it. A toolbar button offers one-tap sample texts, because dictating a long
-sentence on a watch is slow.
+stores it. **Use a sample** offers one-tap texts, because dictating a long sentence on
+a watch is slow.
 
 **Overview** — totals, unread count, per-category breakdown, mark-all-read and delete-all.
+
+## No toolbars on any page
+
+The root is a `.verticalPage` `TabView`, and on watchOS a `ToolbarItem` inside a page of
+one collapses that page to zero size. The app still launches, the page dots still appear
+in the corner, and the screen stays black.
+
+This was found by running the app, not by compiling it — the code builds and installs
+cleanly either way. Every action that would naturally sit in a toolbar is therefore a
+control in the page content:
+
+| Would-be toolbar item | Where it lives instead |
+| --- | --- |
+| Feed category filter | First row of the feed list |
+| Capture sample templates | "Use a sample" button under the field |
+| Detail read/unread + delete | Button row in the detail content |
+
+If a toolbar is ever wanted back on these pages, the root has to stop being a
+vertical-page `TabView` first — a plain `NavigationStack` root would allow it.
+
+### Screens
+
+<table>
+  <tr>
+    <td width="33%"><img src="screenshots-watch/feed.png" alt="Watch feed with category filter and notification rows" /></td>
+    <td width="33%"><img src="screenshots-watch/capture.png" alt="Watch capture screen with text field and summarise button" /></td>
+    <td width="33%"><img src="screenshots-watch/overview.png" alt="Watch overview with totals and category breakdown" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Feed</sub></td>
+    <td align="center"><sub>Capture</sub></td>
+    <td align="center"><sub>Overview</sub></td>
+  </tr>
+</table>
+
+Captured on an Apple Watch Series 11 (46mm) simulator, watchOS 26.5.
 
 ## Shared code
 

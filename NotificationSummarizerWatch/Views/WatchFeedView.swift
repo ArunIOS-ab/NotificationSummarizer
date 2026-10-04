@@ -5,8 +5,13 @@ import SwiftUI
 ///
 /// Structure is intentionally different from the phone: there is no stats header and
 /// no card grid, because on this screen size a notification row that shows its
-/// category, summary and age already *is* the whole layout. Filtering moved into a
-/// toolbar `Menu` so the list keeps every row of vertical space.
+/// category, summary and age already *is* the whole layout.
+///
+/// **No toolbar.** A `ToolbarItem` inside a page of the root's `.verticalPage`
+/// `TabView` collapses the whole page to zero size on watchOS -- the app launches,
+/// shows the page dots, and renders a black screen. The filter therefore lives in the
+/// list as its own row, which is also more reachable with a finger than a header
+/// button. See `docs/watchos.md`.
 struct WatchFeedView: View {
     @Environment(\.modelContext) private var modelContext
 
@@ -22,11 +27,6 @@ struct WatchFeedView: View {
                 .navigationTitle("Feed")
                 .navigationDestination(for: SummarizedNotification.ID.self) { id in
                     detail(for: id)
-                }
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        filterButton
-                    }
                 }
         }
         .task { WatchSampleData.seedIfNeeded(into: modelContext) }
@@ -58,6 +58,9 @@ struct WatchFeedView: View {
             )
         } else {
             List {
+                filterRow
+                    .listRowBackground(Color.clear)
+
                 ForEach(filtered) { notification in
                     NavigationLink(value: notification.id) {
                         WatchNotificationRow(notification: notification)
@@ -85,12 +88,33 @@ struct WatchFeedView: View {
         }
     }
 
-    private var filterButton: some View {
+    /// The filter control, as a list row rather than a toolbar item.
+    ///
+    /// Shows the active filter inline so the current state is visible without opening
+    /// anything -- the thing a header glyph alone cannot do on this screen size.
+    private var filterRow: some View {
         Button {
             showsFilterDialog = true
         } label: {
-            Image(systemName: selectedCategory.map(\.systemImage) ?? "line.3.horizontal.decrease.circle")
-                .foregroundStyle(selectedCategory?.tint ?? Color.accentColor)
+            HStack(spacing: 6) {
+                Image(systemName: selectedCategory?.systemImage ?? "line.3.horizontal.decrease.circle")
+                    .foregroundStyle(selectedCategory?.tint ?? Color.accentColor)
+
+                Text(selectedCategory?.rawValue ?? "All categories")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(selectedCategory?.tint ?? Color.primary)
+
+                Spacer(minLength: 4)
+
+                Text(stats.count(for: selectedCategory).formatted())
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
         }
         .accessibilityLabel("Filter")
         .accessibilityValue(selectedCategory?.rawValue ?? "All categories")

@@ -22,6 +22,10 @@ struct WatchNotificationRow: View {
                 Text(notification.summary)
                     .font(.footnote.weight(.semibold))
                     .lineLimit(2)
+                    // A two-line summary plus a one-line metadata row is the most this
+                    // row height can hold; letting the summary scale down slightly
+                    // avoids clipping the metadata row instead.
+                    .minimumScaleFactor(0.85)
 
                 HStack(spacing: 4) {
                     Text(notification.category.rawValue)
@@ -30,6 +34,12 @@ struct WatchNotificationRow: View {
                 }
                 .font(.caption2)
                 .foregroundStyle(.secondary)
+                // `Text(_:style: .relative)` renders a live-updating string ("28min
+                // 2secs") whose width changes as the countdown ticks. Without a
+                // line limit the HStack re-wraps to two lines whenever it grows, which
+                // on this row height clips the summary above it.
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
             }
 
             Spacer(minLength: 0)
